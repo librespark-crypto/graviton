@@ -1,4 +1,4 @@
-name: Build Unsigned APK
+name: Build Signed APK
 
 on:
   push:
@@ -27,13 +27,22 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Release APK (Unsigned)
+      - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      - name: Upload Unsigned APK
+      - name: Sign Release APK
+        uses: rvx-de/android-release-signer@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKey: ${{ secrets.KEYSTORE_BASE64 }}
+          alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+          keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
+
+      - name: Upload Signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: unsigned-apks
+          name: signed-apks
           path: app/build/outputs/apk/release/*.apk
           retention-days: 7
           
