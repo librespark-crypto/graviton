@@ -9,3 +9,7 @@
 ## 2024-05-22 - Accessibility improvement in Vault PinPad
 **Learning:** Found that the backspace icon-only button used in the video vault's PIN pad had `contentDescription = null`. This obscured the erase functionality for TalkBack users navigating the vault pad.
 **Action:** Always provide localized `contentDescription` for custom numpads or PIN entry controls (e.g., using `stringResource(com.graviton.core.ui.R.string.delete)`).
+
+## 2024-05-23 - Accessibility Anti-Pattern: Redundant Content Descriptions
+**Learning:** Adding `contentDescription` to icons inside `DropdownMenuItem` or `ExtendedFloatingActionButton` (which already contain `Text` nodes) causes screen readers to read the text twice. In Jetpack Compose, focusable containers merge semantics, so a descriptive icon sitting next to descriptive text should always have `contentDescription = null` to avoid redundant and noisy read-outs.
+**Action:** When adding `contentDescription`, strictly limit it to *icon-only* interactive elements (like `IconButton` without textual children). Do not add descriptions to icons that act as visual reinforcements for adjacent text.
