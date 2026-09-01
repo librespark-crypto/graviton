@@ -531,9 +531,9 @@ private fun MusicLibraryContent(
 private fun sectionCount(state: MusicUiState): String = when (state.section) {
     MusicSection.HOME -> "${state.allTracks.size} songs"
     MusicSection.PLAYLISTS -> "${state.playlists.size} playlists"
-    MusicSection.ALBUMS -> "${state.allTracks.map { it.displayAlbum }.distinct().size} albums"
-    MusicSection.ARTISTS -> "${state.allTracks.map { it.displayArtist }.distinct().size} artists"
-    MusicSection.FOLDERS -> "${state.allTracks.map { it.path.substringBeforeLast('/', "") }.distinct().size} folders"
+    MusicSection.ALBUMS -> "${state.albumCount} albums"
+    MusicSection.ARTISTS -> "${state.artistCount} artists"
+    MusicSection.FOLDERS -> "${state.folderCount} folders"
     MusicSection.TRACKS -> "${state.tracks.size} songs"
 }
 

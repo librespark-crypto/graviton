@@ -50,6 +50,9 @@ data class MusicUiState(
     val isLoading: Boolean = true,
     val error: Throwable? = null,
     val allTracks: List<AudioTrack> = emptyList(),
+    val albumCount: Int = 0,
+    val artistCount: Int = 0,
+    val folderCount: Int = 0,
     val tracks: List<AudioTrack> = emptyList(),
     val playlists: List<MusicPlaylist> = emptyList(),
     val section: MusicSection = MusicSection.HOME,
@@ -87,6 +90,9 @@ class MusicViewModel @Inject constructor(
                             isLoading = !tracksLoaded,
                             error = null,
                             allTracks = tracks,
+                            albumCount = tracks.mapTo(mutableSetOf()) { track -> track.displayAlbum }.size,
+                            artistCount = tracks.mapTo(mutableSetOf()) { track -> track.displayArtist }.size,
+                            folderCount = tracks.mapTo(mutableSetOf()) { track -> track.path.substringBeforeLast('/', "") }.size,
                             playlists = playlists,
                         )
                     }
