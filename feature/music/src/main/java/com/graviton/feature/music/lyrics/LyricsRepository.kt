@@ -47,8 +47,10 @@ class LyricsRepository @Inject constructor(
     )
 
     suspend fun load(request: LyricsRequest, allowRemote: Boolean = true): LyricsDocument = withContext(Dispatchers.IO) {
-        if (request.mediaUri.isBlank()) return@withContext LyricsDocument(emptyList(), null)
-        readCache(request)?.let { return@withContext LyricsParser.parse(it).copy(source = "cache") }
+        if (request.mediaUri.isBlank()) return@withContext LyricsDocument.Empty
+        readCache(request)?.let {
+            return@withContext LyricsParser.parse(it).copy(source = "cache", origin = LyricsOrigin.CACHE)
+        }
         val priority = preferencesRepository.applicationPreferences.value.musicLyricsProviderPriority
         for (kind in priority) {
             if (!allowRemote && kind == LyricsSourceKind.LRCLIB) continue
@@ -58,9 +60,10 @@ class LyricsRepository @Inject constructor(
                 .maxByOrNull(LyricsCandidate::confidence)
                 ?: continue
             writeCache(request, best.rawLyrics)
-            return@withContext LyricsParser.parse(best.rawLyrics).copy(source = kind.name)
+            return@withContext LyricsParser.parse(best.rawLyrics)
+                .copy(source = kind.name, origin = kind.toOrigin())
         }
-        LyricsDocument(emptyList(), null)
+        LyricsDocument.Empty
     }
 
     suspend fun search(request: LyricsRequest): List<LyricsCandidate> = withContext(Dispatchers.IO) {
@@ -71,16 +74,53 @@ class LyricsRepository @Inject constructor(
 
     suspend fun select(request: LyricsRequest, candidate: LyricsCandidate): LyricsDocument = withContext(Dispatchers.IO) {
         writeCache(request, candidate.rawLyrics)
-        LyricsParser.parse(candidate.rawLyrics).copy(source = candidate.provider.name)
+        LyricsParser.parse(candidate.rawLyrics)
+            .copy(source = candidate.provider.name, origin = candidate.provider.toOrigin())
     }
 
+    /**
+     * Persists user-edited lyrics.
+     *
+     * The cache is always written so the edit survives immediately. When the track is a real file
+     * that Graviton can write next to, a sidecar `.lrc` is written as well, so the edit outlives
+     * the cache and is visible to other players. A failed sidecar write is not an error — the
+     * cached copy is still authoritative for Graviton.
+     */
     suspend fun replace(request: LyricsRequest, raw: String): LyricsDocument = withContext(Dispatchers.IO) {
         writeCache(request, raw)
-        LyricsParser.parse(raw).copy(source = "user")
+        writeSidecar(request, raw)
+        LyricsParser.parse(raw).copy(source = "user", origin = LyricsOrigin.USER)
+    }
+
+    /** Reads a user-supplied `.lrc`/`.ttml` file chosen from the editor. */
+    suspend fun import(uri: Uri): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        }.getOrNull()?.takeIf(String::isNotBlank)
+    }
+
+    /** Absolute path of the sidecar that [replace] writes, for the "saved to…" message. */
+    fun sidecarPathFor(request: LyricsRequest): String? = sidecarFile(request)?.absolutePath
+
+    private fun sidecarFile(request: LyricsRequest): File? {
+        val audio = request.filePath?.takeIf(String::isNotBlank)?.let(::File) ?: return null
+        val parent = audio.parentFile?.takeIf { it.isDirectory && it.canWrite() } ?: return null
+        return File(parent, "${audio.nameWithoutExtension}.lrc")
+    }
+
+    private fun writeSidecar(request: LyricsRequest, raw: String) {
+        val target = sidecarFile(request) ?: return
+        runCatching { target.writeText(raw) }
     }
 
     suspend fun delete(request: LyricsRequest) = withContext(Dispatchers.IO) {
         cacheFile(request).delete()
+    }
+
+    private fun LyricsSourceKind.toOrigin(): LyricsOrigin = when (this) {
+        LyricsSourceKind.EMBEDDED -> LyricsOrigin.EMBEDDED
+        LyricsSourceKind.SIDECAR_LRC, LyricsSourceKind.SIDECAR_TTML -> LyricsOrigin.SIDECAR
+        LyricsSourceKind.LRCLIB -> LyricsOrigin.REMOTE
     }
 
     private fun isSafeMatch(request: LyricsRequest, candidate: LyricsCandidate): Boolean {

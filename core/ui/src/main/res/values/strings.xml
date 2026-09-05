@@ -775,4 +775,25 @@
     <string name="current_speed_description">Current playback speed</string>
     <string name="value_slider_icon_description">Value slider icon</string>
 
+    <string name="lyrics_error_title">Lyrics could not be loaded</string>
+    <string name="lyrics_editor">Lyrics editor</string>
+    <string name="lyrics_add_line">Add line</string>
+    <string name="lyrics_delete_line">Delete line</string>
+    <string name="lyrics_move_up">Move up</string>
+    <string name="lyrics_move_down">Move down</string>
+    <string name="lyrics_set_timestamp">Set timestamp from current position</string>
+    <string name="lyrics_preview_from_line">Preview from this line</string>
+    <string name="lyrics_offset">Offset all lyrics</string>
+    <string name="lyrics_offset_value">Offset: %1$s ms</string>
+    <string name="lyrics_save">Save</string>
+    <string name="lyrics_saved">Lyrics saved</string>
+    <string name="lyrics_save_failed">Lyrics could not be saved</string>
+    <string name="lyrics_import">Load LRC file</string>
+    <string name="lyrics_export">Export LRC</string>
+    <string name="lyrics_timestamp">Timestamp</string>
+    <string name="lyrics_text">Lyric text</string>
+    <string name="lyrics_translation">Translation</string>
+    <string name="lyrics_invalid_timestamp">Use mm:ss.xx</string>
+    <string name="lyrics_edit">Edit lyrics</string>
+    <string name="lyrics_no_lines">No lyric lines yet. Add one to get started.</string>
 </resources>

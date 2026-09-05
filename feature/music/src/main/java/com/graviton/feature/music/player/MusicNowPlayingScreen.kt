@@ -11,7 +11,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,13 +63,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -83,6 +79,10 @@ import com.graviton.core.ui.R
 import com.graviton.core.ui.designsystem.NextIcons
 import com.graviton.feature.music.artwork.MediaArtwork
 import com.graviton.feature.music.lyrics.LyricsDocument
+import com.graviton.feature.music.lyrics.LyricsEditorScreen
+import com.graviton.feature.music.lyrics.LyricsEditorState
+import com.graviton.feature.music.lyrics.LyricsUiState
+import com.graviton.feature.music.lyrics.LyricsViewer
 import com.graviton.feature.music.rememberMusicPlaybackSnapshot
 import com.graviton.feature.music.rememberMusicSession
 import com.graviton.feature.player.service.cancelSleepTimer
@@ -155,6 +155,9 @@ fun MusicNowPlayingRoute(
                 remainingSleep = 0L
             }
         },
+        onSaveLyrics = { raw -> viewModel.saveLyrics(raw) },
+        onImportLyrics = { uri, onLoaded -> viewModel.importLyrics(uri, onLoaded) },
+        onRetryLyrics = viewModel::retryLyrics,
     )
 }
 
@@ -174,7 +177,7 @@ private fun MusicNowPlayingScreen(
     positionMs: Long,
     durationMs: Long,
     audioFormat: androidx.media3.common.Format?,
-    lyrics: LyricsDocument,
+    lyrics: LyricsUiState,
     remainingSleepMs: Long,
     preferences: ApplicationPreferences,
     onClose: () -> Unit,
@@ -184,6 +187,9 @@ private fun MusicNowPlayingScreen(
     onPrevious: () -> Unit,
     onSleep: (Int) -> Unit,
     onCancelSleep: () -> Unit,
+    onSaveLyrics: (String) -> Unit,
+    onImportLyrics: (android.net.Uri, (LyricsDocument) -> Unit) -> Unit,
+    onRetryLyrics: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -516,7 +522,16 @@ private fun MusicNowPlayingScreen(
         QueueSheet(controller = controller, onDismiss = { showQueue = false })
     }
     if (showLyrics) {
-        LyricsSheet(lyrics = lyrics, positionMs = positionMs, onSeek = onSeek, onDismiss = { showLyrics = false })
+        LyricsSheet(
+            lyrics = lyrics,
+            // Passed as a lambda so the sheet's list is not recomposed by every position tick.
+            positionMs = { positionMs },
+            onSeek = onSeek,
+            onSave = onSaveLyrics,
+            onImport = onImportLyrics,
+            onRetry = onRetryLyrics,
+            onDismiss = { showLyrics = false },
+        )
     }
     if (showSleep) {
         SleepDialog(
@@ -606,73 +621,65 @@ private fun QueueSheet(controller: MediaController, onDismiss: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LyricsSheet(lyrics: LyricsDocument, positionMs: Long, onSeek: (Long) -> Unit, onDismiss: () -> Unit) {
+private fun LyricsSheet(
+    lyrics: LyricsUiState,
+    positionMs: () -> Long,
+    onSeek: (Long) -> Unit,
+    onSave: (String) -> Unit,
+    onImport: (android.net.Uri, (LyricsDocument) -> Unit) -> Unit,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val active = lyrics.lineAt(positionMs)
-    val listState = rememberLazyListState()
-    LaunchedEffect(active) {
-        if (active >= 0) listState.animateScrollToItem(active)
-    }
+    var editing by remember { mutableStateOf(false) }
+    val document = (lyrics as? LyricsUiState.Success)?.document
+    // The editor buffer is keyed by the loaded document so switching track resets it, but typing
+    // does not throw the buffer away on every playback tick.
+    val editorState = remember(document) { LyricsEditorState(document ?: LyricsDocument.Empty) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheet,
         modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.surface,
     ) {
-        Text(stringResource(R.string.lyrics), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
-        when {
-            lyrics.isSynced -> LazyColumn(state = listState, modifier = Modifier.weight(1f).padding(horizontal = 20.dp)) {
-                itemsIndexed(lyrics.lines) { index, line ->
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .pointerInput(line.timeMs) {
-                                detectTapGestures { onSeek(line.timeMs) }
-                            }
-                            .padding(vertical = 8.dp, horizontal = 6.dp),
-                    ) {
-                        KaraokeLyricLine(line = line, positionMs = positionMs, active = index == active)
-                        line.translation?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-            !lyrics.unsynced.isNullOrBlank() -> Text(lyrics.unsynced, modifier = Modifier.padding(20.dp))
-            else -> Text(stringResource(R.string.no_lyrics_found), modifier = Modifier.padding(20.dp))
-        }
-        Spacer(Modifier.height(24.dp))
-    }
-}
-
-@Composable
-private fun KaraokeLyricLine(
-    line: com.graviton.feature.music.lyrics.LyricLine,
-    positionMs: Long,
-    active: Boolean,
-) {
-    val highlighted = MaterialTheme.colorScheme.primary
-    val pending = MaterialTheme.colorScheme.onSurfaceVariant
-    val text = remember(line, positionMs, active, highlighted, pending) {
-        if (!active || line.words.isEmpty()) {
-            buildAnnotatedString {
-                withStyle(SpanStyle(color = if (active) highlighted else pending)) { append(line.text) }
-            }
+        if (editing) {
+            LyricsEditorScreen(
+                state = editorState,
+                positionMs = positionMs,
+                onSeek = onSeek,
+                onSave = { raw ->
+                    onSave(raw)
+                    editorState.markSaved()
+                    editing = false
+                },
+                onImport = { uri -> onImport(uri) { editorState.load(it) } },
+                onClose = { editing = false },
+            )
         } else {
-            buildAnnotatedString {
-                line.words.forEach { word ->
-                    val duration = (word.endMs - word.startMs).coerceAtLeast(1L)
-                    val progress = ((positionMs - word.startMs).toFloat() / duration).coerceIn(0f, 1f)
-                    val split = (word.text.length * progress).toInt().coerceIn(0, word.text.length)
-                    withStyle(SpanStyle(color = highlighted, fontWeight = FontWeight.Bold)) {
-                        append(word.text.substring(0, split))
-                    }
-                    withStyle(SpanStyle(color = pending)) { append(word.text.substring(split)) }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.lyrics),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { editing = true }) {
+                    Text(stringResource(R.string.lyrics_edit))
                 }
             }
+            LyricsViewer(
+                state = lyrics,
+                positionMs = positionMs,
+                onSeek = onSeek,
+                onRetry = onRetry,
+                modifier = Modifier.weight(1f),
+            )
         }
+        Spacer(Modifier.height(12.dp))
     }
-    Text(text = text, style = MaterialTheme.typography.titleMedium)
 }
 
 @Composable
