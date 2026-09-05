@@ -48,7 +48,7 @@ import com.graviton.core.ui.theme.GravitonTheme
 import com.graviton.feature.player.state.HoldSpeedGesture
 
 /**
- * Compact floating hold-speed indicator from mpvRex's CompactSpeedIndicator.
+ * Compact floating hold-speed indicator shown during the temporary speed-boost gesture.
  *
  * Shown only while the finger is held. Speed text jumps immediately when the
  * hold-swipe selects a new preset (for example `2` + `×`).
