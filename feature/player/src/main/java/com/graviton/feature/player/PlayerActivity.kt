@@ -39,9 +39,7 @@ import com.graviton.core.common.service.registerForSuspendActivityResult
 import com.graviton.core.data.stream.StreamExtractor
 import com.graviton.core.model.ExtractedStream
 import com.graviton.core.model.StreamUrls
-import com.graviton.core.model.VideoPlayerBackend
-import com.graviton.core.ui.theme.GravitonTheme
-import com.graviton.feature.player.backend.MpvPlayerActivity
+import com.graviton.core.ui.theme.GravitonAppTheme
 import com.graviton.feature.player.extensions.OpenDocumentAtInitialUri
 import com.graviton.feature.player.extensions.setExtras
 import com.graviton.feature.player.extensions.uriToSubtitleConfiguration
@@ -105,18 +103,6 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val selectedBackend = viewModel.uiState.value.playerPreferences?.videoPlayerBackend
-            ?: VideoPlayerBackend.GRAVITON
-        if (selectedBackend != VideoPlayerBackend.GRAVITON && intent.data != null) {
-            startActivity(
-                Intent(intent).apply {
-                    setClass(this@PlayerActivity, MpvPlayerActivity::class.java)
-                    putExtra(MpvPlayerActivity.EXTRA_BACKEND, selectedBackend.name)
-                },
-            )
-            finish()
-            return
-        }
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
@@ -129,11 +115,14 @@ class PlayerActivity : ComponentActivity() {
 
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val appPreferences by viewModel.applicationPreferences.collectAsStateWithLifecycle()
             val player = renderedController
             var showNetworkStreamDialog by rememberSaveable { mutableStateOf(false) }
 
             CompositionLocalProvider(LocalUseMaterialYouControls provides (uiState.playerPreferences?.useMaterialYouControls == true)) {
-                GravitonTheme(darkTheme = true) {
+                // The player is always dark, but the accent, contrast and dynamic-colour
+                // settings come from the same preferences the rest of the app uses.
+                GravitonAppTheme(preferences = appPreferences, forceDarkTheme = true) {
                     if (showNetworkStreamDialog) {
                         NetworkStreamDialog(
                             onPlay = { url ->
@@ -148,7 +137,7 @@ class PlayerActivity : ComponentActivity() {
                         player = player,
                         viewModel = viewModel,
                         uiState = uiState,
-                        playerPreferences = uiState.playerPreferences ?: return@GravitonTheme,
+                        playerPreferences = uiState.playerPreferences ?: return@GravitonAppTheme,
                         onNetworkStreamClick = { showNetworkStreamDialog = true },
                         onShareClick = ::shareCurrentMedia,
                         onSettingsClick = ::openAppSettings,

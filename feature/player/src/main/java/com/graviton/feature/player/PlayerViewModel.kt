@@ -39,6 +39,14 @@ class PlayerViewModel @Inject constructor(
 
     var playWhenReady: Boolean = true
 
+    /**
+     * The app-wide preferences, exposed unchanged.
+     *
+     * The player themes itself from this instead of hardcoding a scheme, which is what makes an
+     * accent change visible in the player immediately.
+     */
+    val applicationPreferences = preferencesRepository.applicationPreferences
+
     private val internalUiState = MutableStateFlow(
         PlayerUiState(
             playerPreferences = preferencesRepository.playerPreferences.value,

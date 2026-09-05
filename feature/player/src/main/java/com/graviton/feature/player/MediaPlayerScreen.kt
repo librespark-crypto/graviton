@@ -82,6 +82,7 @@ import com.graviton.feature.player.buttons.PreviousButton
 import com.graviton.feature.player.extensions.formatted
 import com.graviton.feature.player.extensions.nameRes
 import com.graviton.feature.player.state.ControlsVisibilityState
+import com.graviton.feature.player.state.LocalHoldSpeedController
 import com.graviton.feature.player.state.VerticalGesture
 import com.graviton.feature.player.state.rememberBrightnessState
 import com.graviton.feature.player.state.rememberControlsVisibilityState
@@ -278,7 +279,10 @@ fun MediaPlayerScreen(
         dpadSeekTick++
     }
 
-    CompositionLocalProvider(LocalControlsVisibilityState provides controlsVisibilityState) {
+    CompositionLocalProvider(
+        LocalControlsVisibilityState provides controlsVisibilityState,
+        LocalHoldSpeedController provides tapGestureState,
+    ) {
         Box {
             Box(
                 modifier = modifier
@@ -527,6 +531,7 @@ fun MediaPlayerScreen(
                 onPanGestureChanged = viewModel::updatePanGesture,
                 onAutoPipChanged = viewModel::updateAutoPip,
                 onControllerAutoHideTimeoutChanged = viewModel::updateControllerAutoHideTimeout,
+                onLongPressSpeedChanged = viewModel::updateLongPressSpeed,
                 onGesturesClick = {
                     overlayView = null
                     onSettingsClick()

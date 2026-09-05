@@ -38,7 +38,7 @@ import com.graviton.core.common.service.system.SystemService
 import com.graviton.core.media.network.proxy.NetworkStreamingProxy
 import com.graviton.core.media.services.MediaOperationsService
 import com.graviton.core.model.ThemeConfig
-import com.graviton.core.ui.theme.GravitonTheme
+import com.graviton.core.ui.theme.GravitonAppTheme
 import com.graviton.feature.player.PlayerActivity
 import com.graviton.navigation.NextNavigationBar
 import com.graviton.navigation.NextNavigationRail
@@ -120,13 +120,8 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            val appTheme = (uiState as? MainActivityUiState.Success)?.preferences?.appTheme ?: com.graviton.core.model.AppTheme.SYSTEM
-            GravitonTheme(
-                darkTheme = shouldUseDarkTheme,
-                highContrastDarkTheme = shouldUseHighContrastDarkTheme(uiState = uiState),
-                dynamicColor = shouldUseDynamicTheming(uiState = uiState),
-                appTheme = appTheme,
-            ) {
+            // One source of truth for theme colours: the same composable the players use.
+            GravitonAppTheme(preferences = (uiState as? MainActivityUiState.Success)?.preferences) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surfaceContainer,
@@ -264,21 +259,3 @@ fun shouldUseDarkTheme(
     }
 }
 
-@Composable
-fun shouldUseHighContrastDarkTheme(
-    uiState: MainActivityUiState,
-): Boolean = when (uiState) {
-    MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> uiState.preferences.useHighContrastDarkTheme
-}
-
-/**
- * Returns `true` if the dynamic color is disabled, as a function of the [uiState].
- */
-@Composable
-fun shouldUseDynamicTheming(
-    uiState: MainActivityUiState,
-): Boolean = when (uiState) {
-    MainActivityUiState.Loading -> false
-    is MainActivityUiState.Success -> uiState.preferences.useDynamicColors
-}

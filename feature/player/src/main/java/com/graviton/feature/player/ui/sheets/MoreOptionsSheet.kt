@@ -1,5 +1,6 @@
 package com.graviton.feature.player.ui.sheets
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -52,7 +53,8 @@ fun BoxScope.MoreOptionsSheet(
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp),
+                .padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             SheetSectionTitle(text = stringResource(R.string.player_section_playback))
             SheetActionRow(

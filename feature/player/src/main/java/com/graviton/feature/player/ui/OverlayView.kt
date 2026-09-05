@@ -1,6 +1,8 @@
 package com.graviton.feature.player.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -8,6 +10,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -22,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
@@ -38,6 +42,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -92,23 +98,53 @@ fun BoxScope.OverlayView(
         val maxSheetHeight = maxHeight * if (isPortrait) 0.72f else 1f
         val sheetWidth = if (isPortrait) maxWidth else (maxWidth * 0.5f).coerceAtMost(480.dp)
 
+        // A gradient scrim, not an opaque backdrop: it grounds the sheet against bright video
+        // without hiding it, and it uses the theme scrim colour rather than a hardcoded black.
+        AnimatedVisibility(
+            modifier = Modifier.matchParentSize(),
+            visible = show,
+            enter = fadeIn(animationSpec = tween(durationMillis = 160)),
+            exit = fadeOut(animationSpec = tween(durationMillis = 120)),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f),
+                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+                            ),
+                        ),
+                    ),
+            )
+        }
+
         AnimatedVisibility(
             modifier = Modifier.align(if (isPortrait) Alignment.BottomCenter else Alignment.CenterEnd),
             visible = show,
-            enter = (if (isPortrait) slideInVertically { it } else slideInHorizontally { it }) +
-                fadeIn(animationSpec = tween(durationMillis = 120)),
+            enter = (
+                if (isPortrait) {
+                    slideInVertically(animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)) { it }
+                } else {
+                    slideInHorizontally(animationSpec = spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow)) { it }
+                }
+                ) + fadeIn(animationSpec = tween(durationMillis = 140)),
             exit = (if (isPortrait) slideOutVertically { it } else slideOutHorizontally { it }) +
-                fadeOut(animationSpec = tween(durationMillis = 90)),
+                fadeOut(animationSpec = tween(durationMillis = 110)),
         ) {
             Surface(
                 shape = if (isPortrait) {
-                    RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                    RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)
                 } else {
-                    RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
+                    RoundedCornerShape(topStart = 36.dp, bottomStart = 36.dp)
                 },
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                // Translucent by design: the video stays readable behind the sheet, and the
+                // colour is a theme token so the app accent tints the sheet automatically.
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
                 contentColor = MaterialTheme.colorScheme.onSurface,
-                tonalElevation = 1.dp,
+                tonalElevation = 0.dp,
                 modifier = modifier
                     .semantics { isTraversalGroup = true }
                     .then(
@@ -129,18 +165,19 @@ fun BoxScope.OverlayView(
                         .focusRequester(focusRequester)
                         .focusGroup()
                         .imePadding()
+                        .navigationBarsPadding()
                         .padding(end = endPadding),
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 24.dp, end = 8.dp, top = 20.dp, bottom = 4.dp)
+                            .padding(start = 28.dp, end = 12.dp, top = 24.dp, bottom = 8.dp)
                             .semantics { traversalIndex = -1f },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -178,6 +215,7 @@ enum class OverlayView {
     AUDIO_SELECTOR,
     SUBTITLE_SELECTOR,
     PLAYBACK_SPEED,
+    LONG_PRESS_SPEED,
     VIDEO_CONTENT_SCALE,
     PLAYLIST,
     DECODER_SELECTOR,

@@ -546,13 +546,14 @@
     <string name="audio_decoder">Audio decoder</string>
     <string name="decoder_mode">Decoder mode</string>
     <string name="decoder_mode_auto">Auto</string>
-    <string name="decoder_mode_hardware">Hardware</string>
-    <string name="decoder_mode_hardware_plus">Hardware+</string>
-    <string name="decoder_mode_software">Software</string>
-    <string name="decoder_mode_auto_desc">Let Graviton pick the best decoder for each stream</string>
-    <string name="decoder_mode_hardware_desc">Device decoders only</string>
-    <string name="decoder_mode_hardware_plus_desc">Device decoders, with software fallback</string>
-    <string name="decoder_mode_software_desc">App bundled decoders only</string>
+    <string name="decoder_mode_hardware">HW</string>
+    <string name="decoder_mode_hardware_plus">HW+</string>
+    <string name="decoder_mode_software">SW</string>
+    <string name="decoder_mode_auto_desc">Automatically select the best decoder</string>
+    <string name="decoder_mode_hardware_desc">Hardware decoder only</string>
+    <string name="decoder_mode_hardware_plus_desc">Hardware decoder with software fallback</string>
+    <string name="decoder_mode_software_desc">Software (bundled) decoder</string>
+    <string name="decoder_mode_change_note">Applies the next time playback starts.</string>
     <string name="dropped_frames">Dropped frames</string>
     <string name="buffered_position">Buffered</string>
     <string name="playback_speed">Playback speed</string>
@@ -774,4 +775,25 @@
     <string name="current_speed_description">Current playback speed</string>
     <string name="value_slider_icon_description">Value slider icon</string>
 
+    <string name="lyrics_error_title">Lyrics could not be loaded</string>
+    <string name="lyrics_editor">Lyrics editor</string>
+    <string name="lyrics_add_line">Add line</string>
+    <string name="lyrics_delete_line">Delete line</string>
+    <string name="lyrics_move_up">Move up</string>
+    <string name="lyrics_move_down">Move down</string>
+    <string name="lyrics_set_timestamp">Set timestamp from current position</string>
+    <string name="lyrics_preview_from_line">Preview from this line</string>
+    <string name="lyrics_offset">Offset all lyrics</string>
+    <string name="lyrics_offset_value">Offset: %1$s ms</string>
+    <string name="lyrics_save">Save</string>
+    <string name="lyrics_saved">Lyrics saved</string>
+    <string name="lyrics_save_failed">Lyrics could not be saved</string>
+    <string name="lyrics_import">Load LRC file</string>
+    <string name="lyrics_export">Export LRC</string>
+    <string name="lyrics_timestamp">Timestamp</string>
+    <string name="lyrics_text">Lyric text</string>
+    <string name="lyrics_translation">Translation</string>
+    <string name="lyrics_invalid_timestamp">Use mm:ss.xx</string>
+    <string name="lyrics_edit">Edit lyrics</string>
+    <string name="lyrics_no_lines">No lyric lines yet. Add one to get started.</string>
 </resources>
