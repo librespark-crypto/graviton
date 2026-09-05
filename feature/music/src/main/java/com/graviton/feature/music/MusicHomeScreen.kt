@@ -388,13 +388,18 @@ private fun MusicLibraryContent(
     onShowFavorites: () -> Unit,
     onClearFilter: () -> Unit,
 ) {
+    // Resolved here, in a @Composable context, because LazyColumn's content lambda is a
+    // LazyListScope DSL block where @Composable calls (such as stringResource inside
+    // activeFilterLabel) are not allowed.
+    val activeFilterLabel = state.activeFilterLabel()
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         // The bottom inset leaves room for the mini bar sitting above the navigation bar.
         contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 132.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        state.activeFilterLabel()?.let { label ->
+        activeFilterLabel?.let { label ->
             item(key = "filter") {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
