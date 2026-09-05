@@ -62,8 +62,6 @@ import com.graviton.core.ui.R
 import com.graviton.core.ui.designsystem.NextIcons
 import com.graviton.core.ui.theme.GravitonTheme
 import com.graviton.shouldUseDarkTheme
-import com.graviton.shouldUseDynamicTheming
-import com.graviton.shouldUseHighContrastDarkTheme
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -123,8 +121,8 @@ class CrashActivity : ComponentActivity() {
 
             GravitonTheme(
                 darkTheme = shouldUseDarkTheme,
-                highContrastDarkTheme = shouldUseHighContrastDarkTheme(uiState = uiState),
-                dynamicColor = shouldUseDynamicTheming(uiState = uiState),
+                highContrastDarkTheme = (uiState as? MainActivityUiState.Success)?.preferences?.useHighContrastDarkTheme ?: false,
+                dynamicColor = (uiState as? MainActivityUiState.Success)?.preferences?.useDynamicColors ?: true,
             ) {
                 val clipboard = LocalClipboard.current
                 CrashScreen(
