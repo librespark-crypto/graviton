@@ -745,29 +745,13 @@ private fun LazyListScope.homeDashboard(
     }
 }
 
-private fun LazyListScope.carouselSection(
-    key: String,
-    @StringRes titleRes: Int,
-    tracks: List<AudioTrack>,
-    onShowAll: (() -> Unit)?,
-    onPlayTrack: (AudioTrack) -> Unit,
-) {
-    item(key = "$key-row") {
-        Column {
-            MusicSectionHeader(title = stringResource(titleRes), onShowAll = onShowAll)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(tracks.take(HOME_ROW_LIMIT), key = { "$key-${it.uriString}" }) { track ->
-                    MusicTile(
-                        title = track.displayTitle,
-                        subtitle = track.displayArtist,
-                        artworkUri = track.artworkUriString,
-                        mediaUri = track.uriString,
-                        onClick = { onPlayTrack(track) },
-                    )
-                }
-            }
-        }
-    }
+private fun sectionCount(state: MusicUiState): String = when (state.section) {
+    MusicSection.HOME -> "${state.allTracks.size} songs"
+    MusicSection.PLAYLISTS -> "${state.playlists.size} playlists"
+    MusicSection.ALBUMS -> "${state.albumCount} albums"
+    MusicSection.ARTISTS -> "${state.artistCount} artists"
+    MusicSection.FOLDERS -> "${state.folderCount} folders"
+    MusicSection.TRACKS -> "${state.tracks.size} songs"
 }
 
 private fun LazyListScope.trackList(
