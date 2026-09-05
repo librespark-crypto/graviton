@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.graviton.core.common.extensions.isTelevision
 import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.feature.player.LocalUseMaterialYouControls
+import com.graviton.feature.player.state.LocalHoldSpeedController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
@@ -44,24 +45,38 @@ fun PlayerButton(
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
 
-    LaunchedEffect(interactionSource) {
-        var isLongPressClicked = false
+    val holdSpeedController = LocalHoldSpeedController.current
+
+    // A press that outlives the long-press timeout is never a click. Depending on the button it
+    // either runs its own long-press action or starts the player-wide temporary speed boost; in
+    // both cases the release must not fall through to onClick, which is what used to make holding
+    // the speed button open the speed menu.
+    LaunchedEffect(interactionSource, onClick, onLongClick, holdSpeedController) {
+        var suppressClick = false
+        var didHoldSpeed = false
         interactionSource.interactions.collectLatest { interaction ->
             when (interaction) {
                 is PressInteraction.Press -> {
-                    isLongPressClicked = false
+                    suppressClick = false
+                    didHoldSpeed = false
                     delay(viewConfiguration.longPressTimeoutMillis)
-                    onLongClick?.let {
-                        isLongPressClicked = true
+                    val longClick = onLongClick
+                    if (longClick != null) {
+                        suppressClick = true
                         hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                        it.invoke()
+                        longClick()
+                    } else if (holdSpeedController.startHold()) {
+                        suppressClick = true
+                        didHoldSpeed = true
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                     }
                 }
 
-                is PressInteraction.Release -> {
-                    if (!isLongPressClicked) {
-                        onClick()
-                    }
+                is PressInteraction.Release, is PressInteraction.Cancel -> {
+                    if (didHoldSpeed) holdSpeedController.endHold()
+                    if (!suppressClick) onClick()
+                    suppressClick = false
+                    didHoldSpeed = false
                 }
             }
         }

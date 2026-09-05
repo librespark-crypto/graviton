@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -33,6 +37,7 @@ fun PlayerGestures(
     volumeAndBrightnessGestureState: VolumeAndBrightnessGestureState,
 ) {
     val haptic = LocalHapticFeedback.current
+    var wasHolding by remember { mutableStateOf(false) }
     val swipeThresholdPx = with(LocalDensity.current) { HoldSpeedGesture.SWIPE_THRESHOLD_DP.dp.toPx() }
 
     BoxWithConstraints {
@@ -44,6 +49,11 @@ fun PlayerGestures(
 
                     detectTapGestures(
                         onTap = {
+                            // A hold that just ended is not a tap: it must not toggle the controls.
+                            if (wasHolding) {
+                                wasHolding = false
+                                return@detectTapGestures
+                            }
                             if (tapGestureState.seekMillis != 0L) return@detectTapGestures
                             controlsVisibilityState.toggleControlsVisibility()
                         },
@@ -52,11 +62,15 @@ fun PlayerGestures(
                             tapGestureState.handleDoubleTap(offset = it, size = size)
                         },
                         onPress = {
+                            // tryAwaitRelease() also returns false on cancel, so the speed is
+                            // restored even when the gesture is stolen by a drag or by PiP.
                             tryAwaitRelease()
+                            wasHolding = tapGestureState.isLongPressGestureInAction
                             tapGestureState.handleOnLongPressRelease()
                         },
                         onLongPress = {
                             if (controlsVisibilityState.controlsLocked) return@detectTapGestures
+                            // Long press only ever boosts the speed. It never opens a menu.
                             tapGestureState.handleLongPress(offset = it)
                             if (tapGestureState.isLongPressGestureInAction) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)

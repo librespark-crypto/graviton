@@ -55,7 +55,7 @@ class TapGestureState(
     initialLongPressSpeed: Float = 2.0f,
     val doubleTapGesture: DoubleTapGesture,
     val interactionSource: MutableInteractionSource = MutableInteractionSource(),
-) {
+) : HoldSpeedController {
     var useLongPressGesture by mutableStateOf(initialUseLongPressGesture)
     var longPressSpeed by mutableStateOf(initialLongPressSpeed)
     var seekMillis by mutableLongStateOf(0L)
@@ -122,17 +122,35 @@ class TapGestureState(
         resetDoubleTapSeekState()
     }
 
+    override val isHolding: Boolean get() = isLongPressGestureInAction
+
     fun handleLongPress(offset: Offset) {
-        if (!useLongPressGesture) return
-        if (!player.isPlaying) return
+        holdStartX = offset.x
+        startHold()
+    }
+
+    /**
+     * Begins the temporary speed boost.
+     *
+     * Returns `false` when the gesture is disabled or the player is not playing, in which case the
+     * caller keeps its normal behaviour.
+     */
+    override fun startHold(): Boolean {
+        if (!useLongPressGesture) return false
+        if (!player.isPlaying) return false
+        if (isLongPressGestureInAction) return true
 
         isLongPressGestureInAction = true
+        // Captured before the boost so a release always restores the user's real speed, even if
+        // the hold is interrupted by a media item transition.
         restoredSpeed = player.playbackParameters.speed
-        holdStartX = offset.x
         holdStartSpeed = longPressSpeed
         activeLongPressSpeed = longPressSpeed
         player.setPlaybackSpeed(activeLongPressSpeed)
+        return true
     }
+
+    override fun endHold() = handleOnLongPressRelease()
 
     fun handleLongPressDrag(
         currentX: Float,

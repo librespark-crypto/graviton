@@ -74,6 +74,8 @@ import com.graviton.feature.player.extensions.uriToSubtitleConfiguration
 import com.graviton.feature.player.extensions.videoZoom
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.FfmpegLibrary
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import com.graviton.feature.player.decoder.filteredBy
 import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.NextRenderersFactory
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleDelayMilliseconds
 import io.github.anilbeesetti.nextlib.media3ext.renderer.subtitleSpeed
@@ -851,21 +853,9 @@ class PlayerService : MediaLibraryService() {
         val renderersFactory = NextRenderersFactory(applicationContext)
             .setEnableDecoderFallback(decoderConfiguration.enableDecoderFallback)
             .setExtensionRendererMode(decoderConfiguration.extensionRendererMode)
-            .setMediaCodecSelector(
-                object : androidx.media3.exoplayer.mediacodec.MediaCodecSelector {
-                    override fun getDecoderInfos(
-                        mimeType: String,
-                        requiresSecureDecoder: Boolean,
-                        requiresTunnelingDecoder: Boolean
-                    ): MutableList<androidx.media3.exoplayer.mediacodec.MediaCodecInfo> {
-                        val defaultInfos = androidx.media3.exoplayer.mediacodec.MediaCodecSelector.DEFAULT.getDecoderInfos(mimeType, requiresSecureDecoder, requiresTunnelingDecoder)
-                        if (playerPreferences.decoderMode == com.graviton.core.model.DecoderMode.HARDWARE || playerPreferences.decoderMode == com.graviton.core.model.DecoderMode.HARDWARE_PLUS) {
-                            return defaultInfos.filter { it.hardwareAccelerated }.toMutableList()
-                        }
-                        return defaultInfos
-                    }
-                }
-            )
+            // The codec selector is what makes HW and SW strict: extension renderer mode alone
+            // still lets MediaCodec pick a software codec (or vice versa).
+            .setMediaCodecSelector(MediaCodecSelector.DEFAULT.filteredBy(decoderConfiguration))
 
         val trackSelector = DefaultTrackSelector(applicationContext).apply {
             setParameters(

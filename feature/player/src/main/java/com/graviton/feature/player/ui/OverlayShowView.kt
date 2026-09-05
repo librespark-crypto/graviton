@@ -27,6 +27,7 @@ import com.graviton.feature.player.ui.sheets.BookmarksSheet
 import com.graviton.feature.player.ui.sheets.ChaptersSheet
 import com.graviton.feature.player.ui.sheets.CutSegmentSheet
 import com.graviton.feature.player.ui.sheets.DisplaySettingsSheet
+import com.graviton.feature.player.ui.sheets.LongPressSpeedSheet
 import com.graviton.feature.player.ui.sheets.MoreOptionsSheet
 import com.graviton.feature.player.ui.sheets.TutorialSheet
 import com.graviton.feature.player.ui.sheets.VideoInformationSheet
@@ -69,6 +70,7 @@ fun BoxScope.OverlayShowView(
     onPanGestureChanged: (Boolean) -> Unit = {},
     onAutoPipChanged: (Boolean) -> Unit = {},
     onControllerAutoHideTimeoutChanged: (Int) -> Unit = {},
+    onLongPressSpeedChanged: (Float) -> Unit = {},
     onGesturesClick: () -> Unit = {},
     onNetworkStreamClick: () -> Unit = {},
     onShareClick: () -> Unit = {},
@@ -108,6 +110,15 @@ fun BoxScope.OverlayShowView(
         player = player,
     )
 
+    // Configuring the hold-to-boost speed is not the same action as changing the current playback
+    // speed, so it gets its own sheet and is never reachable from the long-press gesture itself.
+    LongPressSpeedSheet(
+        show = overlayView == OverlayView.LONG_PRESS_SPEED,
+        currentSpeed = playerPreferences.longPressControlsSpeed,
+        onSpeedSelected = onLongPressSpeedChanged,
+        onDismiss = onDismiss,
+    )
+
     VideoContentScaleSelectorView(
         show = overlayView == OverlayView.VIDEO_CONTENT_SCALE,
         videoContentScale = videoZoomAndContentScaleState.videoContentScale,
@@ -135,7 +146,7 @@ fun BoxScope.OverlayShowView(
         chapterCountLabel = chapterCountLabel,
         cutSegmentLabel = cutSegmentLabel,
         onAspectRatioClick = { onOverlayViewChange(OverlayView.VIDEO_CONTENT_SCALE) },
-        onLongPressSpeedClick = { onOverlayViewChange(OverlayView.PLAYBACK_SPEED) },
+        onLongPressSpeedClick = { onOverlayViewChange(OverlayView.LONG_PRESS_SPEED) },
         onDisplaySettingsClick = { onOverlayViewChange(OverlayView.DISPLAY_SETTINGS) },
         onPlaylistClick = { onOverlayViewChange(OverlayView.PLAYLIST) },
         onNetworkStreamClick = onNetworkStreamClick,
