@@ -30,7 +30,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -182,12 +181,13 @@ private fun AutoScrollToActiveLine(listState: LazyListState, activeIndex: Int) {
     var userScrolling by remember { mutableStateOf(false) }
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }.collectLatest { inProgress ->
-            if (inProgress) userScrolling = true else userScrolling = false
+            userScrolling = inProgress
         }
     }
     LaunchedEffect(activeIndex, userScrolling) {
         if (activeIndex < 0 || userScrolling) return@LaunchedEffect
         val viewportHeight = listState.layoutInfo.viewportSize.height
+        // Before the first layout the viewport is 0; scrolling to offset 0 is still correct.
         val offset = -(viewportHeight / 3)
         runCatching { listState.animateScrollToItem(activeIndex, offset) }
     }
@@ -280,7 +280,7 @@ private fun WordTimedLine(
     activeColor: Color,
     restColor: Color,
 ) {
-    val position by rememberUpdatedState(positionMs())
+    val position = positionMs()
     val text = remember(line, position, activeColor, restColor) {
         buildAnnotatedString {
             line.words.forEach { word ->

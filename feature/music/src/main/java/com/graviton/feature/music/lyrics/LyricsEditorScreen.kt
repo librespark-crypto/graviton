@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -128,8 +127,11 @@ fun LyricsEditorScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(state.lines, key = { it.id }) { line ->
-                        val index = state.lines.indexOf(line)
+                    items(
+                        count = state.lines.size,
+                        key = { index -> state.lines[index].id },
+                    ) { index ->
+                        val line = state.lines[index]
                         EditorLineCard(
                             line = line,
                             expanded = state.expandedIndex == index,

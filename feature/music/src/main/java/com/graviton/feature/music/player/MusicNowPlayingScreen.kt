@@ -4,6 +4,9 @@ import android.content.Intent
 import android.media.audiofx.AudioEffect
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -27,7 +30,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -402,7 +404,18 @@ private fun MusicNowPlayingScreen(
                     modifier = Modifier.size(36.dp),
                 )
             }
-            FilledIconButton(onClick = onTogglePlay, modifier = Modifier.size(72.dp), shape = CircleShape) {
+            // Material 3 Expressive: the primary action changes *shape* as well as glyph, so the
+            // playing state is legible at a glance and from the corner of the eye.
+            val playPauseCorner by animateDpAsState(
+                targetValue = if (isPlaying) 22.dp else 36.dp,
+                animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow),
+                label = "playPauseShape",
+            )
+            FilledIconButton(
+                onClick = onTogglePlay,
+                modifier = Modifier.size(72.dp),
+                shape = RoundedCornerShape(playPauseCorner),
+            ) {
                 // A short cross-fade between the two glyphs reads as a morph without needing an
                 // animated vector or a continuously running animation.
                 AnimatedContent(
