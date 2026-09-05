@@ -187,12 +187,12 @@ class MusicViewModel @Inject constructor(
     private val libraryPreferences = preferencesRepository.applicationPreferences
         .map { preferences ->
             LibraryPreferences(
-                favorites = preferences.favorites,
-                recentlyPlayedUris = preferences.recentlyPlayedUris,
-                playCounts = preferences.playCounts,
-                queueUris = preferences.queueUris,
-                queueIndex = preferences.queueIndex,
-                queuePositionMs = preferences.queuePositionMs,
+                musicFavorites = preferences.musicFavorites,
+                musicRecentlyPlayedUris = preferences.musicRecentlyPlayedUris,
+                musicPlayCounts = preferences.musicPlayCounts,
+                musicQueueUris = preferences.musicQueueUris,
+                musicQueueIndex = preferences.musicQueueIndex,
+                musicQueuePositionMs = preferences.musicQueuePositionMs,
             )
         }
         .distinctUntilChanged()
@@ -358,7 +358,7 @@ class MusicViewModel @Inject constructor(
             .filter { track ->
                 when (val filter = query.filter) {
                     MusicFilter.None -> true
-                    MusicFilter.Favorites -> track.uriString in preferences.favorites
+                    MusicFilter.Favorites -> track.uriString in preferences.musicFavorites
                     is MusicFilter.Album -> track.displayAlbum == filter.name
                     is MusicFilter.Artist -> track.displayArtist == filter.name
                     is MusicFilter.Folder -> track.path.substringBeforeLast('/', "") == filter.path
@@ -389,15 +389,15 @@ class MusicViewModel @Inject constructor(
 
         val groupings = groupingsFor(allTracks)
         val byUri = allTracks.associateBy { it.uriString }
-        val recentPlayed = preferences.recentlyPlayedUris.mapNotNull(byUri::get)
+        val recentPlayed = preferences.musicRecentlyPlayedUris.mapNotNull(byUri::get)
         val mostPlayed = allTracks
-            .filter { (preferences.playCounts[it.uriString] ?: 0) > 0 }
-            .sortedByDescending { preferences.playCounts[it.uriString] ?: 0 }
+            .filter { (preferences.musicPlayCounts[it.uriString] ?: 0) > 0 }
+            .sortedByDescending { preferences.musicPlayCounts[it.uriString] ?: 0 }
             .take(12)
-        val favorites = preferences.favorites.mapNotNull(byUri::get)
-        val resumeUri = preferences.queueUris.getOrNull(preferences.queueIndex)
+        val musicFavorites = preferences.musicFavorites.mapNotNull(byUri::get)
+        val resumeUri = preferences.musicQueueUris.getOrNull(preferences.musicQueueIndex)
         val resumeTrack = resumeUri
-            ?.takeIf { preferences.queuePositionMs > RESUME_THRESHOLD_MS }
+            ?.takeIf { preferences.musicQueuePositionMs > RESUME_THRESHOLD_MS }
             ?.let(byUri::get)
 
         return MusicUiState(
@@ -409,10 +409,10 @@ class MusicViewModel @Inject constructor(
             recentlyPlayed = recentPlayed,
             recentlyAdded = allTracks.sortedByDescending { it.dateAdded }.take(12),
             mostPlayed = mostPlayed,
-            favorites = favorites,
-            favoriteUris = preferences.favorites.toSet(),
+            favorites = musicFavorites,
+            favoriteUris = preferences.musicFavorites.toSet(),
             resumeTrack = resumeTrack,
-            resumePositionMs = if (resumeTrack != null) preferences.queuePositionMs else 0L,
+            resumePositionMs = if (resumeTrack != null) preferences.musicQueuePositionMs else 0L,
             query = query.query,
             sort = query.sort,
             ascending = query.ascending,
@@ -427,12 +427,12 @@ class MusicViewModel @Inject constructor(
 
 /** The subset of persisted settings the library screen depends on. */
 private data class LibraryPreferences(
-    val favorites: List<String>,
-    val recentlyPlayedUris: List<String>,
-    val playCounts: Map<String, Int>,
-    val queueUris: List<String>,
-    val queueIndex: Int,
-    val queuePositionMs: Long,
+    val musicFavorites: List<String>,
+    val musicRecentlyPlayedUris: List<String>,
+    val musicPlayCounts: Map<String, Int>,
+    val musicQueueUris: List<String>,
+    val musicQueueIndex: Int,
+    val musicQueuePositionMs: Long,
 )
 
 private data class Groupings(
