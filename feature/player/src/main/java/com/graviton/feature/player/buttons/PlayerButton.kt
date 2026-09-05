@@ -7,6 +7,7 @@ import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalRippleConfiguration
@@ -91,10 +92,15 @@ fun PlayerButton(
             content = content
         )
     } else {
+        // The classic (non-Material-You) controls still need to read against arbitrary video, but
+        // the colour comes from the theme rather than a hardcoded white so the accent selected in
+        // settings reaches the player. PlayerActivity themes itself dark, so onSurface is a
+        // near-white that is already tinted by the active scheme.
+        val controlColor = MaterialTheme.colorScheme.onSurface
         CompositionLocalProvider(
-            LocalContentColor provides Color.White,
+            LocalContentColor provides controlColor,
             LocalRippleConfiguration provides RippleConfiguration(
-                color = Color.White,
+                color = controlColor,
                 rippleAlpha = RippleAlpha(
                     pressedAlpha = 0.5f,
                     focusedAlpha = 0.5f,

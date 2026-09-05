@@ -19,11 +19,14 @@ import com.graviton.core.model.toggleMusicFavorite
 import com.graviton.core.ui.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -175,13 +178,63 @@ class MusicViewModel @Inject constructor(
         .catch { throwable -> emit(MusicLibraryState.Error(throwable)) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, MusicLibraryState.Loading)
 
+    /**
+     * Only the preference fields the library screen actually reads.
+     *
+     * `applicationPreferences` emits for every setting in the app, including player and theme
+     * settings. Projecting to this slice and de-duplicating means changing an unrelated setting no
+     * longer re-filters, re-sorts and re-groups the whole library.
+     */
+    private val libraryPreferences = preferencesRepository.applicationPreferences
+        .map { preferences ->
+            LibraryPreferences(
+                favorites = preferences.favorites,
+                recentlyPlayedUris = preferences.recentlyPlayedUris,
+                playCounts = preferences.playCounts,
+                queueUris = preferences.queueUris,
+                queueIndex = preferences.queueIndex,
+                queuePositionMs = preferences.queuePositionMs,
+            )
+        }
+        .distinctUntilChanged()
+
     val uiState: StateFlow<MusicUiState> = combine(
         library,
         userQuery,
-        preferencesRepository.applicationPreferences,
+        libraryPreferences,
     ) { libraryState, query, preferences ->
         buildUiState(libraryState, query, preferences)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, MusicUiState())
+    }
+        // Filtering, sorting and grouping a large library is real work; keep it off the main
+        // thread so scrolling and navigation stay smooth while it happens.
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, MusicUiState())
+
+    /**
+     * Album/artist/folder groupings depend only on the track list, but the combine above re-runs
+     * whenever the search query or a preference changes. Caching against the exact list instance
+     * keeps typing in the search box from re-grouping the whole library on every keystroke.
+     */
+    private var groupingCacheKey: List<AudioTrack>? = null
+    private var groupingCache: Groupings = Groupings(emptyList(), emptyList(), emptyList())
+
+    private fun groupingsFor(tracks: List<AudioTrack>): Groupings {
+        if (groupingCacheKey === tracks) return groupingCache
+        val groupings = Groupings(
+            albums = tracks.groupBy { it.displayAlbum }
+                .map { (name, items) -> items.toCollection(name) }
+                .sortedBy { it.name.lowercase() },
+            artists = tracks.groupBy { it.displayArtist }
+                .map { (name, items) -> items.toCollection(name) }
+                .sortedBy { it.name.lowercase() },
+            folders = tracks.groupBy { it.path.substringBeforeLast('/', "") }
+                .map { (name, items) -> items.toCollection(name) }
+                .sortedBy { it.name.lowercase() },
+        )
+        groupingCacheKey = tracks
+        groupingCache = groupings
+        return groupings
+    }
 
     /**
      * Asks the repository to rescan.
@@ -296,7 +349,7 @@ class MusicViewModel @Inject constructor(
     private fun buildUiState(
         libraryState: MusicLibraryState,
         query: MusicQuery,
-        preferences: ApplicationPreferences,
+        preferences: LibraryPreferences,
     ): MusicUiState {
         val allTracks = (libraryState as? MusicLibraryState.Success)?.tracks.orEmpty()
         val playlists = (libraryState as? MusicLibraryState.Success)?.playlists.orEmpty()
@@ -306,7 +359,7 @@ class MusicViewModel @Inject constructor(
             .filter { track ->
                 when (val filter = query.filter) {
                     MusicFilter.None -> true
-                    MusicFilter.Favorites -> track.uriString in preferences.musicFavorites
+                    MusicFilter.Favorites -> track.uriString in preferences.favorites
                     is MusicFilter.Album -> track.displayAlbum == filter.name
                     is MusicFilter.Artist -> track.displayArtist == filter.name
                     is MusicFilter.Folder -> track.path.substringBeforeLast('/', "") == filter.path
@@ -335,16 +388,17 @@ class MusicViewModel @Inject constructor(
             MusicSort.DURATION -> filtered.sortedBy { it.duration }
         }
 
+        val groupings = groupingsFor(allTracks)
         val byUri = allTracks.associateBy { it.uriString }
-        val recentPlayed = preferences.musicRecentlyPlayedUris.mapNotNull(byUri::get)
+        val recentPlayed = preferences.recentlyPlayedUris.mapNotNull(byUri::get)
         val mostPlayed = allTracks
-            .filter { (preferences.musicPlayCounts[it.uriString] ?: 0) > 0 }
-            .sortedByDescending { preferences.musicPlayCounts[it.uriString] ?: 0 }
+            .filter { (preferences.playCounts[it.uriString] ?: 0) > 0 }
+            .sortedByDescending { preferences.playCounts[it.uriString] ?: 0 }
             .take(12)
-        val favorites = preferences.musicFavorites.mapNotNull(byUri::get)
-        val resumeUri = preferences.musicQueueUris.getOrNull(preferences.musicQueueIndex)
+        val favorites = preferences.favorites.mapNotNull(byUri::get)
+        val resumeUri = preferences.queueUris.getOrNull(preferences.queueIndex)
         val resumeTrack = resumeUri
-            ?.takeIf { preferences.musicQueuePositionMs > RESUME_THRESHOLD_MS }
+            ?.takeIf { preferences.queuePositionMs > RESUME_THRESHOLD_MS }
             ?.let(byUri::get)
 
         return MusicUiState(
@@ -357,26 +411,36 @@ class MusicViewModel @Inject constructor(
             recentlyAdded = allTracks.sortedByDescending { it.dateAdded }.take(12),
             mostPlayed = mostPlayed,
             favorites = favorites,
-            favoriteUris = preferences.musicFavorites.toSet(),
+            favoriteUris = preferences.favorites.toSet(),
             resumeTrack = resumeTrack,
-            resumePositionMs = if (resumeTrack != null) preferences.musicQueuePositionMs else 0L,
+            resumePositionMs = if (resumeTrack != null) preferences.queuePositionMs else 0L,
             query = query.query,
             sort = query.sort,
             ascending = query.ascending,
             filter = query.filter,
             isFilterLoading = query.isFilterLoading,
-            albums = allTracks.groupBy { it.displayAlbum }
-                .map { (name, tracks) -> tracks.toCollection(name) }
-                .sortedBy { it.name.lowercase() },
-            artists = allTracks.groupBy { it.displayArtist }
-                .map { (name, tracks) -> tracks.toCollection(name) }
-                .sortedBy { it.name.lowercase() },
-            folders = allTracks.groupBy { it.path.substringBeforeLast('/', "") }
-                .map { (name, tracks) -> tracks.toCollection(name) }
-                .sortedBy { it.name.lowercase() },
+            albums = groupings.albums,
+            artists = groupings.artists,
+            folders = groupings.folders,
         )
     }
 }
+
+/** The subset of persisted settings the library screen depends on. */
+private data class LibraryPreferences(
+    val favorites: List<String>,
+    val recentlyPlayedUris: List<String>,
+    val playCounts: Map<String, Int>,
+    val queueUris: List<String>,
+    val queueIndex: Int,
+    val queuePositionMs: Long,
+)
+
+private data class Groupings(
+    val albums: List<MusicCollection>,
+    val artists: List<MusicCollection>,
+    val folders: List<MusicCollection>,
+)
 
 private fun List<AudioTrack>.toCollection(name: String) = MusicCollection(
     name = name,
