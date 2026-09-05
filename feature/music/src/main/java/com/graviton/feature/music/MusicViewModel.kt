@@ -9,7 +9,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.graviton.core.data.repository.MusicRepository
 import com.graviton.core.data.repository.PreferencesRepository
-import com.graviton.core.model.ApplicationPreferences
 import com.graviton.core.model.AudioTrack
 import com.graviton.core.model.MusicPlaylist
 import com.graviton.core.model.lastMusicUriForFolder
