@@ -2,11 +2,14 @@ package com.graviton.feature.music
 
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.graviton.core.data.repository.MusicRepository
 import com.graviton.core.data.repository.PreferencesRepository
+import com.graviton.core.model.ApplicationPreferences
 import com.graviton.core.model.AudioTrack
 import com.graviton.core.model.MusicPlaylist
 import com.graviton.core.model.lastMusicUriForFolder
@@ -16,11 +19,13 @@ import com.graviton.core.model.toggleMusicFavorite
 import com.graviton.core.ui.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -52,12 +57,27 @@ sealed interface MusicFilter {
 }
 
 /**
+ * The four states the music library can genuinely be in.
+ *
+ * This is derived from the repository flow, never set by hand from a UI callback. That is the whole
+ * point: the previous implementation flipped an `isLoading` boolean imperatively and relied on a
+ * later `MutableStateFlow` emission to flip it back — an emission that `StateFlow` conflates away
+ * whenever the rescan produces an equal list, leaving the tab spinning forever.
+ */
+sealed interface MusicLibraryState {
+    data object Loading : MusicLibraryState
+    data class Success(val tracks: List<AudioTrack>, val playlists: List<MusicPlaylist>) : MusicLibraryState
+    data object Empty : MusicLibraryState
+    data class Error(val throwable: Throwable) : MusicLibraryState
+}
+
+/**
  * A grouping of tracks (album, artist or folder) precomputed in the ViewModel.
  *
  * Grouping is done once per library change rather than inside the composable, so scrolling never
  * re-runs the grouping pass.
  */
-@androidx.compose.runtime.Immutable
+@Immutable
 data class MusicCollection(
     val name: String,
     val trackCount: Int,
@@ -65,10 +85,20 @@ data class MusicCollection(
     val mediaUri: String?,
 )
 
-@androidx.compose.runtime.Stable
+/** Everything the user can change from the UI. Kept apart from library data on purpose. */
+@Immutable
+private data class MusicQuery(
+    val section: MusicSection = MusicSection.HOME,
+    val query: String = "",
+    val sort: MusicSort = MusicSort.TITLE,
+    val ascending: Boolean = true,
+    val filter: MusicFilter = MusicFilter.None,
+    val isFilterLoading: Boolean = false,
+)
+
+@Stable
 data class MusicUiState(
-    val isLoading: Boolean = true,
-    val error: Throwable? = null,
+    val libraryState: MusicLibraryState = MusicLibraryState.Loading,
     val allTracks: List<AudioTrack> = emptyList(),
     val tracks: List<AudioTrack> = emptyList(),
     val playlists: List<MusicPlaylist> = emptyList(),
@@ -94,6 +124,10 @@ data class MusicUiState(
     val artists: List<MusicCollection> = emptyList(),
     val folders: List<MusicCollection> = emptyList(),
 ) {
+    val isLoading: Boolean get() = libraryState is MusicLibraryState.Loading
+    val isEmpty: Boolean get() = libraryState is MusicLibraryState.Empty
+    val error: Throwable? get() = (libraryState as? MusicLibraryState.Error)?.throwable
+
     /** A human label for the active filter, or `null` when the whole library is shown. */
     @Composable
     fun activeFilterLabel(): String? = when (val current = filter) {
@@ -114,109 +148,76 @@ class MusicViewModel @Inject constructor(
     private val musicRepository: MusicRepository,
     private val preferencesRepository: PreferencesRepository,
 ) : ViewModel() {
-    private val stateInternal = MutableStateFlow(MusicUiState())
-    val uiState = stateInternal.asStateFlow()
 
     /** The shared app preferences, reused rather than duplicated into this screen's state. */
     val applicationPreferences = preferencesRepository.applicationPreferences
 
-    private val sourceTracks = MutableStateFlow<List<AudioTrack>>(emptyList())
-    private val sourcePlaylists = MutableStateFlow<List<MusicPlaylist>>(emptyList())
-    private var tracksLoaded = false
-    private var filterJob: Job? = null
+    private val userQuery = MutableStateFlow(MusicQuery())
 
-    init {
-        viewModelScope.launch {
-            combine(sourceTracks, sourcePlaylists) { tracks, playlists -> tracks to playlists }
-                .catch { error -> stateInternal.update { it.copy(isLoading = false, error = error) } }
-                .collect { (tracks, playlists) ->
-                    stateInternal.update {
-                        it.copy(
-                            isLoading = !tracksLoaded,
-                            error = null,
-                            allTracks = tracks,
-                            playlists = playlists,
-                        )
-                    }
-                    recomputeVisibleTracks()
-                }
-        }
-        viewModelScope.launch {
-            musicRepository.observeTracks()
-                .catch { error -> stateInternal.update { it.copy(isLoading = false, error = error) } }
-                .collect {
-                    tracksLoaded = true
-                    sourceTracks.value = it
-                }
-        }
-        viewModelScope.launch {
-            musicRepository.observePlaylists()
-                .catch { error -> stateInternal.update { it.copy(isLoading = false, error = error) } }
-                .collect { sourcePlaylists.value = it }
-        }
-        viewModelScope.launch {
-            preferencesRepository.applicationPreferences.collect { prefs ->
-                val tracks = sourceTracks.value
-                val recent = prefs.musicRecentlyPlayedUris.mapNotNull { uri ->
-                    tracks.firstOrNull { it.uriString == uri }
-                }
-                stateInternal.update { it.copy(recentlyPlayed = recent) }
-                recomputeVisibleTracks()
-            }
+    /**
+     * One collection of the library, owned by the ViewModel scope.
+     *
+     * `SharingStarted.Eagerly` matters: the scan is tied to the ViewModel, not to a composable or
+     * to whether anybody is currently collecting. Navigating away and back re-reads the cached
+     * value instead of restarting a scan, so there is never a second scan job racing the first and
+     * never a window where the UI subscribes to a flow that has already delivered its only value.
+     */
+    private val library: StateFlow<MusicLibraryState> = combine(
+        musicRepository.observeTracks(),
+        musicRepository.observePlaylists(),
+    ) { tracks, playlists ->
+        if (tracks.isEmpty() && playlists.isEmpty()) {
+            MusicLibraryState.Empty
+        } else {
+            MusicLibraryState.Success(tracks, playlists)
         }
     }
+        .catch { throwable -> emit(MusicLibraryState.Error(throwable)) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, MusicLibraryState.Loading)
 
+    val uiState: StateFlow<MusicUiState> = combine(
+        library,
+        userQuery,
+        preferencesRepository.applicationPreferences,
+    ) { libraryState, query, preferences ->
+        buildUiState(libraryState, query, preferences)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, MusicUiState())
+
+    /**
+     * Asks the repository to rescan.
+     *
+     * It deliberately does not force the UI back into Loading. A rescan while a library is already
+     * on screen is a background refresh; forcing Loading here is what made the tab depend on a
+     * follow-up emission that a conflating flow is free to drop.
+     */
     fun refresh() {
-        tracksLoaded = false
-        stateInternal.update { it.copy(isLoading = true, error = null) }
         musicRepository.refresh()
     }
 
     fun selectSection(section: MusicSection) {
-        stateInternal.update { it.copy(section = section, filter = MusicFilter.None, isFilterLoading = false) }
-        recomputeVisibleTracks()
+        userQuery.update { it.copy(section = section, filter = MusicFilter.None, isFilterLoading = false) }
     }
 
-    fun setQuery(query: String) {
-        stateInternal.update { it.copy(query = query) }
-        recomputeVisibleTracks()
-    }
+    fun setQuery(query: String) = userQuery.update { it.copy(query = query) }
 
-    fun setSort(sort: MusicSort) {
-        stateInternal.update { it.copy(sort = sort) }
-        recomputeVisibleTracks()
-    }
+    fun setSort(sort: MusicSort) = userQuery.update { it.copy(sort = sort) }
 
-    fun toggleSortDirection() {
-        stateInternal.update { it.copy(ascending = !it.ascending) }
-        recomputeVisibleTracks()
-    }
+    fun toggleSortDirection() = userQuery.update { it.copy(ascending = !it.ascending) }
 
     /** Switches to the Tracks list filtered to favourites. */
-    fun showFavorites() {
-        stateInternal.update { it.copy(section = MusicSection.TRACKS, filter = MusicFilter.Favorites) }
-        recomputeVisibleTracks()
-    }
+    fun showFavorites() =
+        userQuery.update { it.copy(section = MusicSection.TRACKS, filter = MusicFilter.Favorites) }
 
-    fun clearFilter() {
-        stateInternal.update { it.copy(filter = MusicFilter.None) }
-        recomputeVisibleTracks()
-    }
+    fun clearFilter() = userQuery.update { it.copy(filter = MusicFilter.None) }
 
-    fun selectAlbum(album: String) {
-        stateInternal.update { it.copy(section = MusicSection.TRACKS, filter = MusicFilter.Album(album)) }
-        recomputeVisibleTracks()
-    }
+    fun selectAlbum(album: String) =
+        userQuery.update { it.copy(section = MusicSection.TRACKS, filter = MusicFilter.Album(album)) }
 
-    fun selectArtist(artist: String) {
-        stateInternal.update { it.copy(section = MusicSection.TRACKS, filter = MusicFilter.Artist(artist)) }
-        recomputeVisibleTracks()
-    }
+    fun selectArtist(artist: String) =
+        userQuery.update { it.copy(section = MusicSection.TRACKS, filter = MusicFilter.Artist(artist)) }
 
-    fun selectFolder(path: String) {
-        stateInternal.update { it.copy(section = MusicSection.TRACKS, filter = MusicFilter.Folder(path)) }
-        recomputeVisibleTracks()
-    }
+    fun selectFolder(path: String) =
+        userQuery.update { it.copy(section = MusicSection.TRACKS, filter = MusicFilter.Folder(path)) }
 
     fun folderStartIndex(path: String, tracks: List<AudioTrack>): Int {
         val last = preferencesRepository.applicationPreferences.value.lastMusicUriForFolder(path)
@@ -251,7 +252,6 @@ class MusicViewModel @Inject constructor(
     fun toggleFavorite(track: AudioTrack) {
         viewModelScope.launch {
             preferencesRepository.updateApplicationPreferences { it.toggleMusicFavorite(track.uriString) }
-            recomputeVisibleTracks()
         }
     }
 
@@ -265,37 +265,48 @@ class MusicViewModel @Inject constructor(
                     countPlay = true,
                 )
             }
-            recomputeVisibleTracks()
         }
     }
 
+    /**
+     * Selects a playlist and resolves its members.
+     *
+     * The resolution runs in [viewModelScope]; a newer selection simply overwrites the filter, and
+     * a stale result is discarded by the id check, so no cancellation bookkeeping is needed.
+     */
     fun selectPlaylist(playlist: MusicPlaylist) {
-        filterJob?.cancel()
-        stateInternal.update {
+        userQuery.update {
             it.copy(
                 section = MusicSection.TRACKS,
                 filter = MusicFilter.Playlist(playlist.id, playlist.name),
                 isFilterLoading = true,
             )
         }
-        filterJob = viewModelScope.launch {
-            val ids = runCatching { musicRepository.getPlaylistTrackIds(playlist.id).toSet() }.getOrDefault(emptySet())
-            stateInternal.update { current ->
-                current.copy(filter = MusicFilter.Playlist(playlist.id, playlist.name, ids), isFilterLoading = false)
+        viewModelScope.launch {
+            val ids = runCatching { musicRepository.getPlaylistTrackIds(playlist.id).toSet() }
+                .getOrDefault(emptySet())
+            userQuery.update { current ->
+                val active = current.filter as? MusicFilter.Playlist ?: return@update current
+                if (active.id != playlist.id) return@update current
+                current.copy(filter = active.copy(trackIds = ids), isFilterLoading = false)
             }
-            recomputeVisibleTracks()
         }
     }
 
-    private fun recomputeVisibleTracks() {
-        val current = stateInternal.value
-        val filtered = current.allTracks
+    private fun buildUiState(
+        libraryState: MusicLibraryState,
+        query: MusicQuery,
+        preferences: ApplicationPreferences,
+    ): MusicUiState {
+        val allTracks = (libraryState as? MusicLibraryState.Success)?.tracks.orEmpty()
+        val playlists = (libraryState as? MusicLibraryState.Success)?.playlists.orEmpty()
+
+        val filtered = allTracks
             .asSequence()
             .filter { track ->
-                when (val filter = current.filter) {
+                when (val filter = query.filter) {
                     MusicFilter.None -> true
-                    MusicFilter.Favorites -> track.uriString in preferencesRepository
-                        .applicationPreferences.value.musicFavorites
+                    MusicFilter.Favorites -> track.uriString in preferences.musicFavorites
                     is MusicFilter.Album -> track.displayAlbum == filter.name
                     is MusicFilter.Artist -> track.displayArtist == filter.name
                     is MusicFilter.Folder -> track.path.substringBeforeLast('/', "") == filter.path
@@ -303,14 +314,14 @@ class MusicViewModel @Inject constructor(
                 }
             }
             .filter { track ->
-                val query = current.query.trim()
-                query.isBlank() || track.displayTitle.contains(query, ignoreCase = true) ||
-                    track.displayArtist.contains(query, ignoreCase = true) ||
-                    track.displayAlbum.contains(query, ignoreCase = true)
+                val text = query.query.trim()
+                text.isBlank() || track.displayTitle.contains(text, ignoreCase = true) ||
+                    track.displayArtist.contains(text, ignoreCase = true) ||
+                    track.displayAlbum.contains(text, ignoreCase = true)
             }
             .toList()
 
-        val sorted = when (current.sort) {
+        val sorted = when (query.sort) {
             MusicSort.TITLE -> filtered.sortedWith(compareBy<AudioTrack> { it.displayTitle.lowercase() })
             MusicSort.ARTIST -> filtered.sortedWith(
                 compareBy<AudioTrack> { it.displayArtist.lowercase() }
@@ -323,49 +334,47 @@ class MusicViewModel @Inject constructor(
             MusicSort.DATE_ADDED -> filtered.sortedBy { it.dateAdded }
             MusicSort.DURATION -> filtered.sortedBy { it.duration }
         }
-        val recentAdded = current.allTracks.sortedByDescending { it.dateAdded }.take(12)
-        val recentPlayed = preferencesRepository.applicationPreferences.value.musicRecentlyPlayedUris.mapNotNull { uri ->
-            current.allTracks.firstOrNull { it.uriString == uri }
-        }
-        val preferences = preferencesRepository.applicationPreferences.value
-        val mostPlayed = current.allTracks
+
+        val byUri = allTracks.associateBy { it.uriString }
+        val recentPlayed = preferences.musicRecentlyPlayedUris.mapNotNull(byUri::get)
+        val mostPlayed = allTracks
             .filter { (preferences.musicPlayCounts[it.uriString] ?: 0) > 0 }
             .sortedByDescending { preferences.musicPlayCounts[it.uriString] ?: 0 }
             .take(12)
-        val favorites = preferences.musicFavorites.mapNotNull { uri ->
-            current.allTracks.firstOrNull { it.uriString == uri }
-        }
-        val albums = current.allTracks
-            .groupBy { it.displayAlbum }
-            .map { (name, tracks) -> tracks.toCollection(name) }
-            .sortedBy { it.name.lowercase() }
-        val artists = current.allTracks
-            .groupBy { it.displayArtist }
-            .map { (name, tracks) -> tracks.toCollection(name) }
-            .sortedBy { it.name.lowercase() }
-        val folders = current.allTracks
-            .groupBy { it.path.substringBeforeLast('/', "") }
-            .map { (name, tracks) -> tracks.toCollection(name) }
-            .sortedBy { it.name.lowercase() }
+        val favorites = preferences.musicFavorites.mapNotNull(byUri::get)
         val resumeUri = preferences.musicQueueUris.getOrNull(preferences.musicQueueIndex)
         val resumeTrack = resumeUri
             ?.takeIf { preferences.musicQueuePositionMs > RESUME_THRESHOLD_MS }
-            ?.let { uri -> current.allTracks.firstOrNull { it.uriString == uri } }
-        stateInternal.update {
-            it.copy(
-                tracks = if (current.ascending) sorted else sorted.asReversed(),
-                recentlyAdded = recentAdded,
-                recentlyPlayed = recentPlayed,
-                mostPlayed = mostPlayed,
-                favorites = favorites,
-                favoriteUris = preferences.musicFavorites.toSet(),
-                resumeTrack = resumeTrack,
-                resumePositionMs = if (resumeTrack != null) preferences.musicQueuePositionMs else 0L,
-                albums = albums,
-                artists = artists,
-                folders = folders,
-            )
-        }
+            ?.let(byUri::get)
+
+        return MusicUiState(
+            libraryState = libraryState,
+            allTracks = allTracks,
+            tracks = if (query.ascending) sorted else sorted.asReversed(),
+            playlists = playlists,
+            section = query.section,
+            recentlyPlayed = recentPlayed,
+            recentlyAdded = allTracks.sortedByDescending { it.dateAdded }.take(12),
+            mostPlayed = mostPlayed,
+            favorites = favorites,
+            favoriteUris = preferences.musicFavorites.toSet(),
+            resumeTrack = resumeTrack,
+            resumePositionMs = if (resumeTrack != null) preferences.musicQueuePositionMs else 0L,
+            query = query.query,
+            sort = query.sort,
+            ascending = query.ascending,
+            filter = query.filter,
+            isFilterLoading = query.isFilterLoading,
+            albums = allTracks.groupBy { it.displayAlbum }
+                .map { (name, tracks) -> tracks.toCollection(name) }
+                .sortedBy { it.name.lowercase() },
+            artists = allTracks.groupBy { it.displayArtist }
+                .map { (name, tracks) -> tracks.toCollection(name) }
+                .sortedBy { it.name.lowercase() },
+            folders = allTracks.groupBy { it.path.substringBeforeLast('/', "") }
+                .map { (name, tracks) -> tracks.toCollection(name) }
+                .sortedBy { it.name.lowercase() },
+        )
     }
 }
 

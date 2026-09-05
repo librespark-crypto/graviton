@@ -203,6 +203,17 @@ fun MusicHomeScreen(
                         },
                     )
 
+                    uiState.isEmpty -> MusicEmptyState(
+                        icon = NextIcons.Audio,
+                        title = stringResource(R.string.no_music_title),
+                        description = stringResource(R.string.no_music_description),
+                        action = {
+                            OutlinedButton(onClick = viewModel::refresh) {
+                                Text(stringResource(R.string.try_again))
+                            }
+                        },
+                    )
+
                     else -> MusicLibraryContent(
                         state = uiState,
                         playback = playback,
