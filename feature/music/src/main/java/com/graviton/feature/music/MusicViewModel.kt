@@ -187,12 +187,12 @@ class MusicViewModel @Inject constructor(
     private val libraryPreferences = preferencesRepository.applicationPreferences
         .map { preferences ->
             LibraryPreferences(
-                favorites = preferences.favorites,
-                recentlyPlayedUris = preferences.recentlyPlayedUris,
-                playCounts = preferences.playCounts,
-                queueUris = preferences.queueUris,
-                queueIndex = preferences.queueIndex,
-                queuePositionMs = preferences.queuePositionMs,
+                favorites = preferences.musicFavorites,
+                recentlyPlayedUris = preferences.musicRecentlyPlayedUris,
+                playCounts = preferences.musicPlayCounts,
+                queueUris = preferences.musicQueueUris,
+                queueIndex = preferences.musicQueueIndex,
+                queuePositionMs = preferences.musicQueuePositionMs,
             )
         }
         .distinctUntilChanged()
