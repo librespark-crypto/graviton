@@ -1,0 +1,27 @@
+# JitPack build config for the Graviton AV1 (dav1d) build of nextlib.
+#
+# This branch is anilbeesetti/nextlib main @ 606e9b2988d6 (PR #201: dav1d AV1
+# decoding) plus this file. The original 2024 attempt (PR #76, reverted in
+# PR #91) failed solely because JitPack's builder lacked meson/ninja/nasm.
+#
+# The JitPack builder runs unprivileged (apt-get is refused), so the dav1d
+# toolchain (pkg-config, meson, ninja, nasm) is installed via micromamba from
+# conda-forge instead.
+#
+# Published coordinates (group stamped; version stamped from the git tag):
+#   com.github.librespark-crypto.graviton:nextlib-media3ext:<tag, e.g. 1.11.0-0.14.0-av1.2>
+#   com.github.librespark-crypto.graviton:nextlib-mediainfo:<tag, e.g. 1.11.0-0.14.0-av1.2>
+jdk:
+  - openjdk17
+install:
+  # nextlib hardcodes group io.github.anilbeesetti and version "1.11.0-0.14.0";
+  # stamp the JitPack coordinates and drop the Maven Central publishing (needs
+  # secrets) before running publishToMavenLocal.
+  - sed -i 's/io\.github\.anilbeesetti/com.github.librespark-crypto.graviton/g' build.gradle.kts
+  - 'V=$(git describe --tags --exact-match 2>/dev/null || echo "1.11.0-0.14.0-av1.2"); echo "stamping version $V"; sed -i "s/\"\${libs.versions.androidxMedia3.get()}-0.14.0\"/\"$V\"/" build.gradle.kts'
+  - sed -i '/publishToMavenCentral()/d; /signAllPublications()/d' build.gradle.kts
+  - grep -n "version = " build.gradle.kts | head -2
+  # Toolchain without root: micromamba -> conda-forge pkg-config/meson/ninja/nasm.
+  - curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest -o /tmp/mm.tar.bz2 && tar -xjf /tmp/mm.tar.bz2 -C /tmp bin/micromamba
+  - /tmp/bin/micromamba create -y -p /tmp/mamba -c conda-forge pkg-config meson ninja nasm
+  - export PATH=/tmp/mamba/bin:$PATH && export ANDROID_HOME=${ANDROID_HOME:-/opt/android-sdk-linux} && ./gradlew publishToMavenLocal --no-daemon

@@ -1,0 +1,24 @@
+[versions]
+androidCompileSdk = "36"
+agp = "9.4.0"
+kotlin = "2.4.10"
+androidxMedia3 = "1.11.0"
+junit = "4.13.2"
+checkerQual = "3.54.0"
+googleErrorProne = "2.48.0"
+androidxAnnotation = "1.9.1"
+cmake = "3.22.1"
+ndk = "25.2.9519653"
+mavenPublish = "0.37.0"
+
+[libraries]
+androidx-annotation = { group = "androidx.annotation", name = "annotation", version.ref = "androidxAnnotation" }
+kotlin-annotations-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-annotations-jvm", version.ref = "kotlin" }
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "androidxMedia3" }
+checker-qual = { group = "org.checkerframework", name = "checker-qual", version.ref = "checkerQual" }
+google-errorprone-annotations = { group = "com.google.errorprone", name = "error_prone_annotations", version.ref = "googleErrorProne" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+[plugins]
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
