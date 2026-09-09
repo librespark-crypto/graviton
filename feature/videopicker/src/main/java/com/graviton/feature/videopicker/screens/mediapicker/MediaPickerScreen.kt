@@ -1116,12 +1116,11 @@ private fun NetworkUrlDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.network_stream)) },
         content = {
-            Text(text = stringResource(R.string.enter_a_network_url))
-            Spacer(modifier = Modifier.height(10.dp))
             OutlinedTextField(
                 value = url,
                 onValueChange = { url = it },
                 modifier = Modifier.fillMaxWidth(),
+                label = { Text(text = stringResource(R.string.enter_a_network_url)) },
                 placeholder = { Text(text = stringResource(R.string.example_url)) },
             )
         },

@@ -16,3 +16,7 @@
 ## 2024-05-18 - Clear Search Screen Reader Labeling
 **Learning:** Found an accessibility issue where the "clear search" icon inside `SearchScreen` used `R.string.clear_history` as its content description. This is misleading because it clears the active search query, not the history list.
 **Action:** Replaced it with a dedicated `R.string.clear_search` to ensure accurate feedback for TalkBack users when focusing on the text field's clear button.
+
+## 2024-05-25 - Accessibility improvement in Dialog Text Fields
+**Learning:** Found multiple instances where `OutlinedTextField` components (e.g., in `NetworkStreamDialog`, `MediaPickerScreen`, and `MusicHomeScreen`) lacked a semantic `label` parameter. Instead, a standalone `Text` component was placed above the field. This breaks the semantic association for TalkBack users, who will not hear a label when focusing the input field.
+**Action:** Always use the built-in `label = { Text(...) }` parameter for `OutlinedTextField` and similar form inputs to ensure semantic grouping and proper screen reader announcements, rather than relying on visually grouped standalone components.

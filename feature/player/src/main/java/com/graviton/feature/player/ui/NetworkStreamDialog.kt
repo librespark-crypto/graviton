@@ -41,10 +41,10 @@ fun NetworkStreamDialog(
         title = { Text(text = stringResource(R.string.network_stream)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(text = stringResource(R.string.enter_a_network_url))
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
+                    label = { Text(text = stringResource(R.string.enter_a_network_url)) },
                     placeholder = { Text(text = stringResource(R.string.example_url)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
