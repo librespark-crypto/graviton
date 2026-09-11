@@ -4,11 +4,10 @@ import java.util.Locale
 import kotlin.math.abs
 
 /**
- * Hold-to-speed math from mpvRex's GestureHandler.
+ * Hold-to-speed math for the player's temporary speed-boost gesture.
  *
  * A long-press starts temporary speed control at the configured hold speed. Horizontal
- * movement then selects the nearest preset: right increases, left decreases. The 0.5×
- * steps above 1× (1.0, 1.5, 2.0, …, 4.0) are the same table mpvRex uses.
+ * movement then selects the nearest preset: right increases, left decreases.
  */
 object HoldSpeedGesture {
     val SPEED_PRESETS = listOf(0.25f, 0.5f, 0.75f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f, 4.0f)
