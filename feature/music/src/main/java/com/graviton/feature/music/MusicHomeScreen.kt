@@ -925,6 +925,7 @@ private fun StreamUrlDialog(onPlay: (String) -> Unit, onDismiss: () -> Unit) {
                 value = url,
                 onValueChange = { url = it },
                 modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.stream_url)) },
                 placeholder = { Text(stringResource(R.string.example_url)) },
                 singleLine = true,
             )
