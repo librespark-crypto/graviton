@@ -124,7 +124,9 @@ fun QuickSettingsDialog(
                             icon = {
                                 Icon(
                                     imageVector = if (sortOrder == Sort.Order.ASCENDING) NextIcons.ArrowUpward else NextIcons.ArrowDownward,
-                                    contentDescription = stringResource(R.string.ascending),
+                                    contentDescription = stringResource(
+                                        if (sortOrder == Sort.Order.ASCENDING) R.string.ascending else R.string.descending
+                                    ),
                                     modifier = Modifier.size(FilterChipDefaults.IconSize),
                                 )
                             },
