@@ -331,7 +331,7 @@ private fun LogsSelectionContainer(
 @PreviewLightDark
 @Composable
 private fun CrashLogsScreenPreview() {
-    GravitonTheme {
+    GravitonAppTheme(preferences = null) {
         CrashScreen(
             exceptionString = "Exception message",
             logcat = "Logcat message",
