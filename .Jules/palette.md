@@ -13,3 +13,11 @@
 ## 2024-05-23 - Accessibility Anti-Pattern: Redundant Content Descriptions
 **Learning:** Adding `contentDescription` to icons inside `DropdownMenuItem` or `ExtendedFloatingActionButton` (which already contain `Text` nodes) causes screen readers to read the text twice. In Jetpack Compose, focusable containers merge semantics, so a descriptive icon sitting next to descriptive text should always have `contentDescription = null` to avoid redundant and noisy read-outs.
 **Action:** When adding `contentDescription`, strictly limit it to *icon-only* interactive elements (like `IconButton` without textual children). Do not add descriptions to icons that act as visual reinforcements for adjacent text.
+
+## 2026-09-12 - Dynamic contentDescription for stateful icons
+**Learning:** Found an accessibility issue where a stateful icon inside a  hardcoded its  to represent only one state (Ascending) despite dynamically changing its visual representation (ArrowUpward vs ArrowDownward). This misleads screen reader users.
+**Action:** Ensure that when an icon dynamically changes based on state, its  is also dynamically evaluated using string resources (e.g., ) to provide an accurate accessibility tree.
+
+## 2024-06-25 - Dynamic contentDescription for stateful icons
+**Learning:** Found an accessibility issue where a stateful icon inside a `SegmentedButton` hardcoded its `contentDescription` to represent only one state (Ascending) despite dynamically changing its visual representation (ArrowUpward vs ArrowDownward). This misleads screen reader users.
+**Action:** Ensure that when an icon dynamically changes based on state, its `contentDescription` is also dynamically evaluated using string resources (e.g., `if (state == A) stringResource(R.string.A) else stringResource(R.string.B)`) to provide an accurate accessibility tree.
