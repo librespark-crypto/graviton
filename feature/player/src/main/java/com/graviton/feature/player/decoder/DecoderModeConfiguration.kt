@@ -48,7 +48,7 @@ fun DecoderMode.toConfiguration(): DecoderModeConfiguration = when (this) {
     )
     DecoderMode.HARDWARE -> DecoderModeConfiguration(
         extensionRendererMode = DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF,
-        enableDecoderFallback = false,
+        enableDecoderFallback = true,
         allowHardwareCodecs = true,
         allowSoftwareCodecs = false,
     )
@@ -69,9 +69,9 @@ fun DecoderMode.toConfiguration(): DecoderModeConfiguration = when (this) {
 /**
  * A codec selector that enforces the hardware/software policy of [configuration].
  *
- * If filtering would leave no decoder at all, the unfiltered list is returned: refusing to play
- * anything is worse than honouring the preference approximately, and Media3 reports the real
- * capability failure itself.
+ * In HW mode, software decoders are strictly filtered out and never silently returned.
+ * In SW mode, software decoders are strictly selected where available.
+ * In AUTO/HW+ modes, hardware decoders are prioritized with fallback allowed.
  */
 fun MediaCodecSelector.filteredBy(configuration: DecoderModeConfiguration): MediaCodecSelector =
     MediaCodecSelector { mimeType, requiresSecureDecoder, requiresTunnelingDecoder ->
@@ -79,7 +79,17 @@ fun MediaCodecSelector.filteredBy(configuration: DecoderModeConfiguration): Medi
         val filtered = all.filter { info ->
             if (info.hardwareAccelerated) configuration.allowHardwareCodecs else configuration.allowSoftwareCodecs
         }
-        if (filtered.isEmpty()) all else filtered
+        if (!configuration.allowSoftwareCodecs) {
+            // In HW-only mode, genuinely request hardware decoding and never silently fall back to software
+            filtered
+        } else if (!configuration.allowHardwareCodecs) {
+            // In SW-only mode, use software decoding where supported
+            if (filtered.isNotEmpty()) filtered else all.filter { !it.hardwareAccelerated }
+        } else {
+            // In AUTO and HW+ modes, prefer hardware decoders first, then software fallback
+            val prioritized = all.sortedByDescending { it.hardwareAccelerated }
+            if (filtered.isNotEmpty()) prioritized else all
+        }
     }
 
 /** Short label used in the diagnostics log, matching the in-player chip. */

@@ -216,10 +216,15 @@ fun MediaPlayerScreen(
         currentMediaId?.let(viewModel::loadMediaDetails)
     }
 
-    // The gesture onboarding is offered once, and only when gestures actually exist to explain.
-    LaunchedEffect(uiState.isTutorialShown) {
-        if (!uiState.isTutorialShown && overlayView == null) {
-            overlayView = OverlayView.TUTORIAL
+    // The gesture onboarding is offered once after first successful player launch.
+    var hasHandledInitialGestureHelp by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(uiState.gestureHelpShown, player) {
+        if (!hasHandledInitialGestureHelp && player != null) {
+            hasHandledInitialGestureHelp = true
+            if (!uiState.gestureHelpShown && overlayView == null) {
+                overlayView = OverlayView.TUTORIAL
+                viewModel.setGestureHelpShown(true)
+            }
         }
     }
 
@@ -557,7 +562,7 @@ fun MediaPlayerScreen(
                     currentMediaId?.let { mediaId -> viewModel.deleteBookmark(mediaId, bookmark) }
                 },
                 onTutorialDontShowAgain = {
-                    viewModel.setTutorialShown(true)
+                    viewModel.setGestureHelpShown(true)
                     overlayView = null
                 },
             )

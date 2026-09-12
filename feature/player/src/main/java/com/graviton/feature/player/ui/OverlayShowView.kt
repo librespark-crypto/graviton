@@ -79,17 +79,13 @@ fun BoxScope.OverlayShowView(
     onDeleteBookmark: (VideoBookmark) -> Unit = {},
     onTutorialDontShowAgain: () -> Unit = {},
 ) {
-    Box(
-        modifier = Modifier
-            .matchParentSize()
-            .then(
-                if (overlayView != null) {
-                    Modifier.noRippleClickable(onClick = onDismiss)
-                } else {
-                    Modifier
-                },
-            ),
-    )
+    if (overlayView != null) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .noRippleClickable(onClick = onDismiss),
+        )
+    }
 
     AudioTrackSelectorView(
         show = overlayView == OverlayView.AUDIO_SELECTOR,

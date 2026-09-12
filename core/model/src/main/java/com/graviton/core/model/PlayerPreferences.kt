@@ -1,5 +1,6 @@
 package com.graviton.core.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -32,6 +33,8 @@ data class PlayerPreferences(
     val seekSensitivity: Float = DEFAULT_SEEK_SENSITIVITY,
     val volumeGestureSensitivity: Float = DEFAULT_VOLUME_GESTURE_SENSITIVITY,
     val brightnessGestureSensitivity: Float = DEFAULT_BRIGHTNESS_GESTURE_SENSITIVITY,
+    @SerialName("gesture_help_shown")
+    val gestureHelpShown: Boolean = false,
 
     // Player Interface
     val controllerAutoHideTimeout: Int = DEFAULT_CONTROLLER_AUTO_HIDE_TIMEOUT,

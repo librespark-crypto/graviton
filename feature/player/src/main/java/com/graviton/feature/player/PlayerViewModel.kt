@@ -51,7 +51,10 @@ class PlayerViewModel @Inject constructor(
         PlayerUiState(
             playerPreferences = preferencesRepository.playerPreferences.value,
             bookmarks = preferencesRepository.applicationPreferences.value.videoBookmarks,
-            isTutorialShown = preferencesRepository.applicationPreferences.value.playerTutorialShown,
+            gestureHelpShown = preferencesRepository.playerPreferences.value.gestureHelpShown ||
+                preferencesRepository.applicationPreferences.value.playerTutorialShown,
+            isTutorialShown = preferencesRepository.playerPreferences.value.gestureHelpShown ||
+                preferencesRepository.applicationPreferences.value.playerTutorialShown,
         ),
     )
     val uiState = internalUiState.asStateFlow()
@@ -59,15 +62,24 @@ class PlayerViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             preferencesRepository.playerPreferences.collect { prefs ->
-                internalUiState.update { it.copy(playerPreferences = prefs) }
+                val shown = prefs.gestureHelpShown || internalUiState.value.gestureHelpShown
+                internalUiState.update {
+                    it.copy(
+                        playerPreferences = prefs,
+                        gestureHelpShown = shown,
+                        isTutorialShown = shown,
+                    )
+                }
             }
         }
         viewModelScope.launch {
             preferencesRepository.applicationPreferences.collect { prefs ->
+                val shown = prefs.playerTutorialShown || internalUiState.value.gestureHelpShown
                 internalUiState.update {
                     it.copy(
                         bookmarks = prefs.videoBookmarks,
-                        isTutorialShown = prefs.playerTutorialShown,
+                        gestureHelpShown = shown,
+                        isTutorialShown = shown,
                     )
                 }
             }
@@ -232,10 +244,15 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun setTutorialShown(shown: Boolean) {
+    fun setGestureHelpShown(shown: Boolean = true) {
         viewModelScope.launch {
+            preferencesRepository.updatePlayerPreferences { it.copy(gestureHelpShown = shown) }
             preferencesRepository.updateApplicationPreferences { it.copy(playerTutorialShown = shown) }
         }
+    }
+
+    fun setTutorialShown(shown: Boolean) {
+        setGestureHelpShown(shown)
     }
 }
 
@@ -243,6 +260,7 @@ class PlayerViewModel @Inject constructor(
 data class PlayerUiState(
     val playerPreferences: PlayerPreferences? = null,
     val bookmarks: Map<String, List<VideoBookmark>> = emptyMap(),
+    val gestureHelpShown: Boolean = false,
     val isTutorialShown: Boolean = false,
     val detailsMediaId: String? = null,
     val chapters: List<MediaChapter> = emptyList(),

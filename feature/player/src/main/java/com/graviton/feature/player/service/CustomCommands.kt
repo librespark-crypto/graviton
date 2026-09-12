@@ -56,7 +56,16 @@ enum class CustomCommands(val customAction: String) {
         const val VIDEO_DECODER_INIT_MS_KEY = "video_decoder_init_ms"
         const val AUDIO_DECODER_NAME_KEY = "audio_decoder_name"
         const val DROPPED_FRAMES_KEY = "dropped_frames"
+        const val RENDERED_FRAMES_KEY = "rendered_frames"
         const val DECODER_INITIALISATIONS_KEY = "decoder_initialisations"
+        const val MIME_TYPE_KEY = "mime_type"
+        const val WIDTH_KEY = "width"
+        const val HEIGHT_KEY = "height"
+        const val FRAME_RATE_KEY = "frame_rate"
+        const val BITRATE_KEY = "bitrate"
+        const val BIT_DEPTH_KEY = "bit_depth"
+        const val PROFILE_KEY = "profile"
+        const val LEVEL_KEY = "level"
     }
 }
 
@@ -182,6 +191,15 @@ suspend fun MediaController.getPlaybackDiagnostics(): PlaybackDiagnosticsSnapsho
         ),
         audioDecoderName = extras.getString(CustomCommands.AUDIO_DECODER_NAME_KEY),
         droppedFrames = extras.getInt(CustomCommands.DROPPED_FRAMES_KEY, 0),
+        renderedFrames = extras.getInt(CustomCommands.RENDERED_FRAMES_KEY, 0),
         decoderInitialisations = extras.getInt(CustomCommands.DECODER_INITIALISATIONS_KEY, 0),
+        mimeType = extras.getString(CustomCommands.MIME_TYPE_KEY),
+        width = extras.getInt(CustomCommands.WIDTH_KEY, PlaybackDiagnosticsSnapshot.UNKNOWN_INT),
+        height = extras.getInt(CustomCommands.HEIGHT_KEY, PlaybackDiagnosticsSnapshot.UNKNOWN_INT),
+        frameRate = extras.getFloat(CustomCommands.FRAME_RATE_KEY, PlaybackDiagnosticsSnapshot.UNKNOWN_FLOAT),
+        bitrate = extras.getLong(CustomCommands.BITRATE_KEY, PlaybackDiagnosticsSnapshot.UNKNOWN_LONG),
+        bitDepth = extras.getString(CustomCommands.BIT_DEPTH_KEY),
+        profile = extras.getString(CustomCommands.PROFILE_KEY),
+        level = extras.getString(CustomCommands.LEVEL_KEY),
     )
 }
