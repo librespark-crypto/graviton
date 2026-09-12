@@ -57,7 +57,7 @@ suspend fun PointerInputScope.detectCustomTransformGestures(
 
         // Wait for at least one pointer to press down and set the first contact position
         val down: PointerInputChange = awaitFirstDown(
-            requireUnconsumed = false,
+            requireUnconsumed = true,
             pass = pass,
         )
 
@@ -155,7 +155,7 @@ suspend fun PointerInputScope.detectCustomHorizontalDragGestures(
     onHorizontalDrag: (change: PointerInputChange, dragAmount: Float) -> Unit,
 ) {
     awaitEachGesture {
-        val down = awaitFirstDown(requireUnconsumed = false)
+        val down = awaitFirstDown(requireUnconsumed = true)
         var overSlop = 0f
         val drag = awaitHorizontalTouchSlopOrCancellation(down.id) { change, over ->
             change.consume()
@@ -185,7 +185,7 @@ suspend fun PointerInputScope.detectCustomVerticalDragGestures(
     onVerticalDrag: (change: PointerInputChange, dragAmount: Float) -> Unit,
 ) {
     awaitEachGesture {
-        val down = awaitFirstDown(requireUnconsumed = false)
+        val down = awaitFirstDown(requireUnconsumed = true)
         var overSlop = 0f
         val drag = awaitVerticalTouchSlopOrCancellation(down.id) { change, over ->
             change.consume()

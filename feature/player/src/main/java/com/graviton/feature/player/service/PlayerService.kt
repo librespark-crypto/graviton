@@ -22,6 +22,7 @@ import androidx.media3.common.Player.DISCONTINUITY_REASON_SEEK
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.session.CommandButton
@@ -807,6 +808,8 @@ class PlayerService : MediaLibraryService() {
 
                 CustomCommands.GET_PLAYBACK_DIAGNOSTICS -> {
                     val diagnostics = playbackDiagnostics.snapshot
+                    val liveRendered = playbackDiagnostics.currentRenderedFrames()
+                    val liveDropped = playbackDiagnostics.currentDroppedFrames()
                     return@future SessionResult(
                         SessionResult.RESULT_SUCCESS,
                         Bundle().apply {
@@ -820,8 +823,17 @@ class PlayerService : MediaLibraryService() {
                             diagnostics.audioDecoderName?.let {
                                 putString(CustomCommands.AUDIO_DECODER_NAME_KEY, it)
                             }
-                            putInt(CustomCommands.DROPPED_FRAMES_KEY, diagnostics.droppedFrames)
+                            putInt(CustomCommands.DROPPED_FRAMES_KEY, liveDropped)
+                            putInt(CustomCommands.RENDERED_FRAMES_KEY, liveRendered)
                             putInt(CustomCommands.DECODER_INITIALISATIONS_KEY, diagnostics.decoderInitialisations)
+                            diagnostics.mimeType?.let { putString(CustomCommands.MIME_TYPE_KEY, it) }
+                            putInt(CustomCommands.WIDTH_KEY, diagnostics.width)
+                            putInt(CustomCommands.HEIGHT_KEY, diagnostics.height)
+                            putFloat(CustomCommands.FRAME_RATE_KEY, diagnostics.frameRate)
+                            putLong(CustomCommands.BITRATE_KEY, diagnostics.bitrate)
+                            diagnostics.bitDepth?.let { putString(CustomCommands.BIT_DEPTH_KEY, it) }
+                            diagnostics.profile?.let { putString(CustomCommands.PROFILE_KEY, it) }
+                            diagnostics.level?.let { putString(CustomCommands.LEVEL_KEY, it) }
                         },
                     )
                 }
@@ -853,6 +865,7 @@ class PlayerService : MediaLibraryService() {
         val renderersFactory = NextRenderersFactory(applicationContext)
             .setEnableDecoderFallback(decoderConfiguration.enableDecoderFallback)
             .setExtensionRendererMode(decoderConfiguration.extensionRendererMode)
+            .setAllowedVideoJoiningTimeMs(5000)
             // The codec selector is what makes HW and SW strict: extension renderer mode alone
             // still lets MediaCodec pick a software codec (or vice versa).
             .setMediaCodecSelector(MediaCodecSelector.DEFAULT.filteredBy(decoderConfiguration))
@@ -865,9 +878,24 @@ class PlayerService : MediaLibraryService() {
             )
         }
 
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                /* minBufferMs = */ 50_000,
+                /* maxBufferMs = */ 50_000,
+                /* bufferForPlaybackMs = */ 1_500,
+                /* bufferForPlaybackAfterRebufferMs = */ 3_000,
+            )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .setBackBuffer(
+                /* backBufferDurationMs = */ 10_000,
+                /* retainBackBufferFromKeyframe = */ true,
+            )
+            .build()
+
         val player = ExoPlayer.Builder(applicationContext)
             .setRenderersFactory(renderersFactory)
             .setTrackSelector(trackSelector)
+            .setLoadControl(loadControl)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)

@@ -555,6 +555,10 @@
     <string name="decoder_mode_software_desc">Software (bundled) decoder</string>
     <string name="decoder_mode_change_note">Applies the next time playback starts.</string>
     <string name="dropped_frames">Dropped frames</string>
+    <string name="rendered_frames">Rendered frames</string>
+    <string name="bit_depth">Bit depth</string>
+    <string name="profile">Profile</string>
+    <string name="level">Level</string>
     <string name="buffered_position">Buffered</string>
     <string name="playback_speed">Playback speed</string>
     <string name="playback_state">State</string>

@@ -98,10 +98,20 @@ fun BoxScope.TutorialSheet(
             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onDontShowAgain) {
+            TextButton(
+                onClick = {
+                    onDontShowAgain()
+                    onDismiss()
+                },
+            ) {
                 Text(text = stringResource(R.string.tutorial_dont_show_again))
             }
-            FilledTonalButton(onClick = onDismiss) {
+            FilledTonalButton(
+                onClick = {
+                    onDontShowAgain()
+                    onDismiss()
+                },
+            ) {
                 Text(text = stringResource(R.string.got_it))
             }
         }

@@ -217,7 +217,7 @@ private fun FolderGridItem(
         onLongClick = onLongClick,
         content = {
             Column(
-                modifier = modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

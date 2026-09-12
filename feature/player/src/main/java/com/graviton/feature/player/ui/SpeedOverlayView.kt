@@ -95,12 +95,6 @@ fun BoxScope.SpeedOverlayView(
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.FastForward,
-                    contentDescription = stringResource(com.graviton.core.ui.R.string.current_speed_description),
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
                 AnimatedContent(
                     targetState = speedString,
                     transitionSpec = {
@@ -130,7 +124,7 @@ fun BoxScope.SpeedOverlayView(
                         ).using(SizeTransform(clip = false))
                     },
                     label = "SpeedJumpAnimation",
-                    modifier = Modifier.padding(start = 4.dp),
+                    modifier = Modifier.padding(end = 4.dp),
                 ) { targetSpeed ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -141,7 +135,7 @@ fun BoxScope.SpeedOverlayView(
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = "×",
+                            text = "x",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(start = 1.dp),
@@ -149,6 +143,12 @@ fun BoxScope.SpeedOverlayView(
                         )
                     }
                 }
+                Icon(
+                    imageVector = Icons.Default.FastForward,
+                    contentDescription = stringResource(com.graviton.core.ui.R.string.current_speed_description),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
             }
         }
     }

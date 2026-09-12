@@ -24,8 +24,12 @@ import androidx.media3.common.util.UnstableApi
 import com.graviton.core.common.Utils
 import com.graviton.core.model.DecoderMode
 import com.graviton.core.model.MediaInfo
+import com.graviton.core.model.decoder.BitDepth
 import com.graviton.core.ui.R
 import com.graviton.feature.player.decoder.PlaybackDiagnosticsSnapshot
+import com.graviton.feature.player.decoder.getLevelName
+import com.graviton.feature.player.decoder.getProfileName
+import com.graviton.feature.player.decoder.toVideoStreamSpec
 import com.graviton.feature.player.extensions.nameRes
 import com.graviton.feature.player.state.MediaPresentationState
 import com.graviton.feature.player.state.durationFormatted
@@ -109,22 +113,44 @@ fun BoxScope.VideoInformationSheet(
                         value = stringResource(R.string.no_video_track_in_file),
                     )
                 } else {
-                    val width = videoStream?.frameWidth ?: videoFormat?.width?.takeIf { it != Format.NO_VALUE }
-                    val height = videoStream?.frameHeight ?: videoFormat?.height?.takeIf { it != Format.NO_VALUE }
-                    val frameRate = videoStream?.frameRate?.takeIf { it > 0 }
+                    val width = diagnostics.width.takeIf { it > 0 }
+                        ?: videoStream?.frameWidth
+                        ?: videoFormat?.width?.takeIf { it != Format.NO_VALUE }
+                    val height = diagnostics.height.takeIf { it > 0 }
+                        ?: videoStream?.frameHeight
+                        ?: videoFormat?.height?.takeIf { it != Format.NO_VALUE }
+                    val frameRate = diagnostics.frameRate.takeIf { it > 0f }?.toDouble()
+                        ?: videoStream?.frameRate?.takeIf { it > 0 }
                         ?: videoFormat?.frameRate?.takeIf { it > 0f }?.toDouble()
-                    val bitRate = videoStream?.bitRate?.takeIf { it > 0 }
+                    val bitRate = diagnostics.bitrate.takeIf { it > 0 }
+                        ?: videoStream?.bitRate?.takeIf { it > 0 }
                         ?: videoFormat?.bitrate?.takeIf { it != Format.NO_VALUE }?.toLong()
+                    val mimeType = diagnostics.mimeType
+                        ?: videoFormat?.sampleMimeType
+                        ?: videoStream?.codecName
+                        ?: unknown
+                    val bitDepth = diagnostics.bitDepth
+                        ?: videoFormat?.let { getBitDepthString(it) }
+                        ?: unknown
+                    val profile = diagnostics.profile
+                        ?: videoFormat?.let { getProfileNameFromFormat(it) }
+                        ?: unknown
+                    val level = diagnostics.level
+                        ?: videoFormat?.let { getLevelNameFromFormat(it) }
+                        ?: unknown
+
                     InfoRows(
                         rows = listOf(
-                            stringResource(R.string.codec) to
-                                (videoStream?.codecName ?: videoFormat?.sampleMimeType ?: unknown),
+                            stringResource(R.string.codec) to mimeType,
                             stringResource(R.string.resolution) to
                                 (if (width != null && height != null) "$width × $height" else unknown),
                             stringResource(R.string.frame_rate) to
                                 (frameRate?.let { "%.2f fps".format(it) } ?: unknown),
                             stringResource(R.string.bitrate) to
                                 (bitRate?.let { Utils.formatBitrate(it) } ?: unknown),
+                            stringResource(R.string.bit_depth) to bitDepth,
+                            stringResource(R.string.profile) to profile,
+                            stringResource(R.string.level) to level,
                         ),
                         useTwoColumns = useTwoColumns,
                         monospace = true,
@@ -229,6 +255,7 @@ fun BoxScope.VideoInformationSheet(
                             Player.STATE_ENDED -> stringResource(R.string.state_ended)
                             else -> stringResource(R.string.state_idle)
                         },
+                        stringResource(R.string.rendered_frames) to diagnostics.renderedFrames.toString(),
                         stringResource(R.string.dropped_frames) to diagnostics.droppedFrames.toString(),
                         stringResource(R.string.buffered_position) to "${(bufferedMs / 1000f).roundToInt()} s",
                         stringResource(R.string.playback_speed) to "%.2f×".format(player.playbackParameters.speed),
@@ -238,6 +265,34 @@ fun BoxScope.VideoInformationSheet(
                 )
             }
         }
+    }
+}
+
+private fun getProfileNameFromFormat(format: Format): String? {
+    val spec = format.toVideoStreamSpec()
+    return if (spec != null && spec.profile != null) {
+        getProfileName(spec.codec, spec.profile)
+    } else null
+}
+
+private fun getLevelNameFromFormat(format: Format): String? {
+    val spec = format.toVideoStreamSpec()
+    return if (spec != null && spec.level != null) {
+        getLevelName(spec.codec, spec.level)
+    } else null
+}
+
+private fun getBitDepthString(format: Format): String {
+    val colorLuma = format.colorInfo?.lumaBitdepth
+    if (colorLuma != null && colorLuma > 0) {
+        return "${colorLuma}-bit"
+    }
+    val spec = format.toVideoStreamSpec()
+    return when (spec?.bitDepth) {
+        BitDepth.TEN -> "10-bit"
+        BitDepth.EIGHT -> "8-bit"
+        BitDepth.TWELVE -> "12-bit"
+        else -> "Unknown"
     }
 }
 

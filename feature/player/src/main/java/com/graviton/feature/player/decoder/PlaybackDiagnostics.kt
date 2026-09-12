@@ -5,9 +5,11 @@ import androidx.annotation.OptIn
 import androidx.media3.common.Format
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DecoderCounters
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import com.graviton.core.model.DecoderMode
+import com.graviton.core.model.decoder.BitDepth
 import com.graviton.core.model.decoder.DecoderCapability
 import com.graviton.core.model.decoder.DecoderHierarchy
 import com.graviton.core.model.decoder.SoftwareSupport
@@ -39,6 +41,13 @@ class PlaybackDiagnostics(
     private var currentSpec: VideoStreamSpec? = null
     private var decoderInitialisations = 0
     private var droppedFrames = 0
+    private var videoDecoderCounters: DecoderCounters? = null
+
+    fun currentRenderedFrames(): Int =
+        videoDecoderCounters?.renderedOutputBufferCount ?: snapshot.renderedFrames
+
+    fun currentDroppedFrames(): Int =
+        videoDecoderCounters?.droppedBufferCount ?: droppedFrames
 
     /**
      * The latest decoder facts, readable by the UI.
@@ -51,6 +60,23 @@ class PlaybackDiagnostics(
     var snapshot: PlaybackDiagnosticsSnapshot = PlaybackDiagnosticsSnapshot()
         private set
 
+    override fun onVideoEnabled(
+        eventTime: AnalyticsListener.EventTime,
+        decoderCounters: DecoderCounters,
+    ) {
+        videoDecoderCounters = decoderCounters
+    }
+
+    override fun onVideoDisabled(
+        eventTime: AnalyticsListener.EventTime,
+        decoderCounters: DecoderCounters,
+    ) {
+        snapshot = snapshot.copy(
+            renderedFrames = decoderCounters.renderedOutputBufferCount,
+            droppedFrames = decoderCounters.droppedBufferCount,
+        )
+    }
+
     override fun onVideoInputFormatChanged(
         eventTime: AnalyticsListener.EventTime,
         format: Format,
@@ -58,10 +84,48 @@ class PlaybackDiagnostics(
     ) {
         decoderInitialisations = 0
         droppedFrames = 0
-        snapshot = snapshot.copy(droppedFrames = 0, decoderInitialisations = 0)
 
         val spec = format.toVideoStreamSpec()
         currentSpec = spec
+
+        val bitDepthStr = when {
+            format.colorInfo != null && format.colorInfo!!.lumaBitdepth > 0 -> "${format.colorInfo!!.lumaBitdepth}-bit"
+            spec?.bitDepth == BitDepth.TEN -> "10-bit"
+            spec?.bitDepth == BitDepth.EIGHT -> "8-bit"
+            spec?.bitDepth == BitDepth.TWELVE -> "12-bit"
+            else -> null
+        }
+        val profileStr = if (spec?.profile != null) {
+            getProfileName(spec.codec, spec.profile)
+        } else null
+        val levelStr = if (spec?.level != null) {
+            getLevelName(spec.codec, spec.level)
+        } else null
+
+        val bitrateVal = if (format.bitrate != Format.NO_VALUE && format.bitrate > 0) {
+            format.bitrate.toLong()
+        } else if (format.averageBitrate != Format.NO_VALUE && format.averageBitrate > 0) {
+            format.averageBitrate.toLong()
+        } else if (format.peakBitrate != Format.NO_VALUE && format.peakBitrate > 0) {
+            format.peakBitrate.toLong()
+        } else {
+            PlaybackDiagnosticsSnapshot.UNKNOWN_LONG
+        }
+
+        snapshot = snapshot.copy(
+            droppedFrames = 0,
+            renderedFrames = videoDecoderCounters?.renderedOutputBufferCount ?: 0,
+            decoderInitialisations = 0,
+            mimeType = format.sampleMimeType ?: spec?.mimeType,
+            width = if (format.width != Format.NO_VALUE) format.width else PlaybackDiagnosticsSnapshot.UNKNOWN_INT,
+            height = if (format.height != Format.NO_VALUE) format.height else PlaybackDiagnosticsSnapshot.UNKNOWN_INT,
+            frameRate = if (format.frameRate != Format.NO_VALUE.toFloat() && format.frameRate > 0f) format.frameRate else PlaybackDiagnosticsSnapshot.UNKNOWN_FLOAT,
+            bitrate = bitrateVal,
+            bitDepth = bitDepthStr,
+            profile = profileStr,
+            level = levelStr,
+        )
+
         if (spec == null) {
             log("format mime=${format.sampleMimeType} codecs=${format.codecs} (no capability model)")
             return
@@ -74,6 +138,7 @@ class PlaybackDiagnostics(
         log(
             "format ${capability.describe()} | mode=${decoderMode.label()} " +
                 "| mime=${spec.mimeType} codecs=${format.codecs} " +
+                "| bitDepth=${bitDepthStr ?: "unknown"} profile=${profileStr ?: "unknown"} level=${levelStr ?: "unknown"} " +
                 "| path=$path${if (atRisk) " (software decode likely to drop frames)" else ""}",
         )
         log("device decoders for ${spec.mimeType}: ${capabilities.decoderNames(spec.mimeType)}")
@@ -100,6 +165,8 @@ class PlaybackDiagnostics(
             isVideoDecoderHardware = hardware,
             videoDecoderInitMs = initializationDurationMs,
             decoderInitialisations = decoderInitialisations,
+            renderedFrames = videoDecoderCounters?.renderedOutputBufferCount ?: snapshot.renderedFrames,
+            droppedFrames = videoDecoderCounters?.droppedBufferCount ?: droppedFrames,
         )
 
         log("decoder=$decoderName kind=$kind initMs=$initializationDurationMs$fallback")
@@ -118,7 +185,9 @@ class PlaybackDiagnostics(
         eventTime: AnalyticsListener.EventTime,
         decoderName: String,
     ) {
-        log("decoder released=$decoderName after ${decoderInitialisations} init(s), $droppedFrames dropped frame(s)")
+        val totalDropped = currentDroppedFrames()
+        val totalRendered = currentRenderedFrames()
+        log("decoder released=$decoderName after ${decoderInitialisations} init(s), $totalDropped dropped frame(s), $totalRendered rendered frame(s)")
     }
 
     override fun onDroppedVideoFrames(
@@ -127,8 +196,13 @@ class PlaybackDiagnostics(
         elapsedMs: Long,
     ) {
         droppedFrames += droppedFrameCount
-        snapshot = snapshot.copy(droppedFrames = droppedFrames)
-        log("droppedFrames=+$droppedFrameCount in ${elapsedMs}ms (total=$droppedFrames)")
+        val totalDropped = currentDroppedFrames()
+        val totalRendered = currentRenderedFrames()
+        snapshot = snapshot.copy(
+            droppedFrames = totalDropped,
+            renderedFrames = totalRendered,
+        )
+        log("droppedFrames=+$droppedFrameCount in ${elapsedMs}ms (total=$totalDropped, rendered=$totalRendered)")
     }
 
     override fun onVideoCodecError(eventTime: AnalyticsListener.EventTime, videoCodecError: Exception) {
@@ -176,9 +250,20 @@ data class PlaybackDiagnosticsSnapshot(
     val videoDecoderInitMs: Long = UNKNOWN_LONG,
     val audioDecoderName: String? = null,
     val droppedFrames: Int = 0,
+    val renderedFrames: Int = 0,
     val decoderInitialisations: Int = 0,
+    val mimeType: String? = null,
+    val width: Int = UNKNOWN_INT,
+    val height: Int = UNKNOWN_INT,
+    val frameRate: Float = UNKNOWN_FLOAT,
+    val bitrate: Long = UNKNOWN_LONG,
+    val bitDepth: String? = null,
+    val profile: String? = null,
+    val level: String? = null,
 ) {
     companion object {
         const val UNKNOWN_LONG = -1L
+        const val UNKNOWN_INT = -1
+        const val UNKNOWN_FLOAT = -1f
     }
 }
