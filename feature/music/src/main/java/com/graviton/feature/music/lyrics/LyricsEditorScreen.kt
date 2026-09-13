@@ -25,7 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingActionButton
+import com.graviton.core.ui.glass.GlassFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -95,7 +95,7 @@ fun LyricsEditorScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { state.addLineAfter(state.lines.lastIndex, positionMs()) }) {
+            GlassFloatingActionButton(onClick = { state.addLineAfter(state.lines.lastIndex, positionMs()) }) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.lyrics_add_line))
             }
         },

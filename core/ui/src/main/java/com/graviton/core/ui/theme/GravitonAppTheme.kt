@@ -2,9 +2,11 @@ package com.graviton.core.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import com.graviton.core.model.AppTheme
 import com.graviton.core.model.ApplicationPreferences
 import com.graviton.core.model.ThemeConfig
+import com.graviton.core.ui.glass.LocalGlassEnabled
 
 /**
  * The single entry point every Graviton screen themes itself with.
@@ -30,13 +32,15 @@ fun GravitonAppTheme(
         ThemeConfig.OFF -> false
         ThemeConfig.ON -> true
     }
-    GravitonTheme(
-        darkTheme = darkTheme,
-        highContrastDarkTheme = preferences.useHighContrastDarkTheme,
-        dynamicColor = preferences.useDynamicColors,
-        appTheme = preferences.appTheme,
-        content = content,
-    )
+    CompositionLocalProvider(LocalGlassEnabled provides preferences.glassUiEnabled) {
+        GravitonTheme(
+            darkTheme = darkTheme,
+            highContrastDarkTheme = preferences.useHighContrastDarkTheme,
+            dynamicColor = preferences.useDynamicColors,
+            appTheme = preferences.appTheme,
+            content = content,
+        )
+    }
 }
 
 /** Fallback used before preferences have loaded, so the first frame is not un-themed. */
@@ -50,6 +54,8 @@ fun GravitonAppTheme(
     if (preferences != null) {
         GravitonAppTheme(preferences = preferences, forceDarkTheme = forceDarkTheme, content = content)
     } else {
-        GravitonTheme(darkTheme = forceDarkTheme || isSystemInDarkTheme(), appTheme = fallbackAppTheme, content = content)
+        CompositionLocalProvider(LocalGlassEnabled provides false) {
+            GravitonTheme(darkTheme = forceDarkTheme || isSystemInDarkTheme(), appTheme = fallbackAppTheme, content = content)
+        }
     }
 }

@@ -135,7 +135,14 @@ private fun AppearancePreferencesContent(
                         // Let's assume there is an AppTheme enum and we can use it.
                         onEvent(AppearancePreferencesEvent.UpdateAppTheme(AppTheme.AMOLED))
                     },
-                    isLastItem = true
+                )
+                PreferenceSwitch(
+                    title = stringResource(R.string.glass_ui),
+                    description = stringResource(R.string.glass_ui_desc),
+                    icon = NextIcons.Glass,
+                    isChecked = uiState.preferences.glassUiEnabled,
+                    onClick = { onEvent(AppearancePreferencesEvent.ToggleGlassUi) },
+                    isLastItem = true,
                 )
 
                 ListSectionTitle(text = "Navigation Bar")

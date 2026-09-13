@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.ExtendedFloatingActionButton
+import com.graviton.core.ui.glass.GlassExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -119,7 +119,7 @@ internal fun NetworkScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            GlassExtendedFloatingActionButton(
                 onClick = onAddConnection,
                 icon = { Icon(NextIcons.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.add_connection)) },

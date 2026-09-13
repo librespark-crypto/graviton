@@ -27,7 +27,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FloatingActionButton
+import com.graviton.core.ui.glass.GlassFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -241,7 +241,7 @@ internal fun PlaylistDetailScreen(
         },
         floatingActionButton = {
             if (!uiState.isSearching && !isReordering && playbackStartUri != null) {
-                FloatingActionButton(
+                GlassFloatingActionButton(
                     onClick = {
                         onAction(
                             PlaylistDetailUiAction.OnPlayVideos(

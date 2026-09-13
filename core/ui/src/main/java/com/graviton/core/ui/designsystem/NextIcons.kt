@@ -13,6 +13,7 @@ import androidx.compose.material.icons.rounded.AppSettingsAlt
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Audiotrack
+import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.BrightnessHigh
@@ -232,4 +233,5 @@ object NextIcons {
     val Sort = Icons.Rounded.Sort
     val Trending = Icons.Rounded.TrendingUp
     val Tutorial = Icons.Rounded.School
+    val Glass = Icons.Rounded.BlurOn
 }

@@ -53,6 +53,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleFloatingActionButton
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -114,6 +115,7 @@ import com.graviton.core.ui.components.thenIf
 import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.core.ui.composables.PermissionMissingView
 import com.graviton.core.ui.designsystem.NextIcons
+import com.graviton.core.ui.glass.glassFabContainerColor
 import com.graviton.core.ui.extensions.copy
 import com.graviton.core.ui.preview.DayNightPreview
 import com.graviton.core.ui.preview.VideoPickerPreviewParameterProvider
@@ -401,6 +403,10 @@ internal fun MediaPickerScreen(
                 button = {
                     ToggleFloatingActionButton(
                         checked = isFabExpanded,
+                        colors = ToggleFloatingActionButtonDefaults.toggleFloatingActionButtonColors(
+                            containerColor = glassFabContainerColor(),
+                            checkedContainerColor = glassFabContainerColor(),
+                        ),
                         onCheckedChange = { expand ->
                             if (expand && canPlayAll && uiState.folderName != null && !isFabExpanded) {
                                 val items = mediaHolderForFab?.videos.orEmpty().map { video ->
