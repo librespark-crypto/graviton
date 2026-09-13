@@ -95,6 +95,7 @@ import com.graviton.feature.videopicker.composables.vault.VaultProgressDialog
 import com.graviton.feature.videopicker.composables.VideoItem
 import com.graviton.feature.videopicker.state.SelectionItem
 import com.graviton.feature.videopicker.state.rememberSelectionManager
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun VaultRoute(
@@ -212,7 +213,7 @@ private fun VaultPinScreen(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         PinEntryContent(
             modifier = Modifier.padding(padding),
@@ -517,7 +518,7 @@ private fun VaultGalleryScreen(
                 onDeleteAction = { showDeleteConfirmation = true },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         Box(
             modifier = Modifier

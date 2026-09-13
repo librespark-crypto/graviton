@@ -1,0 +1,6 @@
+- Graviton 1.0.0
+- New Graviton logo and visual identity
+- Redesigned About and Settings screens with clearer grouping
+- Optional Glass UI style in Appearance settings
+- Expressive network buffering indicator with real progress when available
+- General UI polish and stability improvements

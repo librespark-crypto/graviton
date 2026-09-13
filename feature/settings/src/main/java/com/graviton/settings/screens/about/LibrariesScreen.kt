@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,7 +32,9 @@ import com.graviton.core.ui.R
 import com.graviton.core.ui.components.NextSegmentedListItem
 import com.graviton.core.ui.components.NextTopAppBar
 import com.graviton.core.ui.designsystem.NextIcons
+import com.graviton.core.ui.extensions.openInBrowserOrToast
 import com.graviton.core.ui.extensions.plus
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -57,7 +58,7 @@ fun LibrariesScreen(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { innerPadding ->
         val libs = remember { Libs.Builder().withContext(context).build() }
 
@@ -110,7 +111,7 @@ fun LibrariesScreen(
                     isLastItem = index == libs.libraries.lastIndex,
                     onClick = {
                         library.website?.takeIf { it.isNotBlank() }?.let {
-                            uriHandler.openUriOrShowToast(uri = it, context = context)
+                            context.openInBrowserOrToast(it)
                         }
                     },
                 )

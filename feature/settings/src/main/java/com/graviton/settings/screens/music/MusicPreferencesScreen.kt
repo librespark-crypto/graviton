@@ -44,6 +44,7 @@ import com.graviton.settings.composables.OptionsDialog
 import com.graviton.settings.utils.rememberTvListFocusRequester
 import com.graviton.settings.utils.tvFocusDown
 import com.graviton.settings.utils.tvListFocus
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun MusicPreferencesScreen(onNavigateUp: () -> Unit, viewModel: MusicPreferencesViewModel = hiltViewModel()) {
@@ -83,7 +84,7 @@ private fun MusicPreferencesContent(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { innerPadding ->
         Column(
             Modifier

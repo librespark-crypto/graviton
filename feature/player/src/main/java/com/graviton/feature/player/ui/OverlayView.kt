@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
@@ -60,6 +61,9 @@ import com.graviton.core.ui.R
 import com.graviton.core.ui.components.requestFocusUntilLanded
 import com.graviton.core.ui.designsystem.NextIcons
 import com.graviton.core.ui.theme.GravitonTheme
+import com.graviton.core.ui.theme.LocalGlassUi
+import com.graviton.core.ui.theme.glassBorderColor
+import com.graviton.core.ui.theme.glassContainerColor
 
 /**
  * The adaptive sheet every player overlay is presented in.
@@ -134,6 +138,9 @@ fun BoxScope.OverlayView(
             exit = (if (isPortrait) slideOutVertically { it } else slideOutHorizontally { it }) +
                 fadeOut(animationSpec = tween(durationMillis = 110)),
         ) {
+            val glass = LocalGlassUi.current
+            val glassContainer = glassContainerColor()
+            val glassBorder = glassBorderColor()
             Surface(
                 shape = if (isPortrait) {
                     RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)
@@ -142,8 +149,10 @@ fun BoxScope.OverlayView(
                 },
                 // Translucent by design: the video stays readable behind the sheet, and the
                 // colour is a theme token so the app accent tints the sheet automatically.
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
+                // Glass UI mode goes a step further: a frosted container with a hairline border.
+                color = if (glass) glassContainer else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
                 contentColor = MaterialTheme.colorScheme.onSurface,
+                border = if (glass) BorderStroke(1.dp, glassBorder) else null,
                 tonalElevation = 0.dp,
                 modifier = modifier
                     .semantics { isTraversalGroup = true }

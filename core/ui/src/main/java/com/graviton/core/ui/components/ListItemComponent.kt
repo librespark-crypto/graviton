@@ -22,7 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.graviton.core.ui.theme.LocalGlassUi
+import com.graviton.core.ui.theme.glassBorderColor
+import com.graviton.core.ui.theme.glassContainerColor
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -33,7 +37,7 @@ fun NextSegmentedListItem(
     isFirstItem: Boolean = false,
     isLastItem: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(16.dp),
-    colors: ListItemColors = ListItemDefaults.segmentedColors(),
+    colors: ListItemColors = defaultSegmentedListItemColors(),
     shapes: ListItemShapes = ListItemDefaults.shapes(),
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
@@ -50,6 +54,25 @@ fun NextSegmentedListItem(
     val isFocused by focusInteractionSource.collectIsFocusedAsState()
     val focusScale by animateFloatAsState(targetValue = if (isFocused) 1.01f else 1f, label = "focusScale")
 
+    val glass = LocalGlassUi.current
+    val glassBorder = glassBorderColorSafe(glass)
+
+    val itemShapes = remember(isFirstItem, isLastItem, shapes) {
+        val defaultBaseShape = shapes.shape
+        if (defaultBaseShape is CornerBasedShape) {
+            shapes.copy(
+                shape = defaultBaseShape.copy(
+                    topStart = overrideShape.topStart.takeIf { isFirstItem } ?: defaultBaseShape.topStart,
+                    topEnd = overrideShape.topEnd.takeIf { isFirstItem } ?: defaultBaseShape.topEnd,
+                    bottomStart = overrideShape.bottomStart.takeIf { isLastItem } ?: defaultBaseShape.bottomStart,
+                    bottomEnd = overrideShape.bottomEnd.takeIf { isLastItem } ?: defaultBaseShape.bottomEnd,
+                ),
+            )
+        } else {
+            shapes
+        }
+    }
+
     SegmentedListItem(
         modifier = modifier
             .zIndex(if (isFocused) 1f else 0f)
@@ -61,6 +84,14 @@ fun NextSegmentedListItem(
                         color = MaterialTheme.colorScheme.primary,
                         shape = overrideShape,
                     )
+                } else if (glass) {
+                    // Frosted hairline outline around each glass card so translucent surfaces
+                    // stay separated from the backdrop and from each other.
+                    Modifier.border(
+                        width = 1.dp,
+                        color = glassBorder,
+                        shape = itemShapes.shape,
+                    )
                 } else {
                     Modifier
                 },
@@ -70,21 +101,7 @@ fun NextSegmentedListItem(
         onLongClick = onLongClick,
         enabled = enabled,
         verticalAlignment = Alignment.CenterVertically,
-        shapes = remember(isFirstItem, isLastItem, shapes) {
-            val defaultBaseShape = shapes.shape
-            if (defaultBaseShape is CornerBasedShape) {
-                shapes.copy(
-                    shape = defaultBaseShape.copy(
-                        topStart = overrideShape.topStart.takeIf { isFirstItem } ?: defaultBaseShape.topStart,
-                        topEnd = overrideShape.topEnd.takeIf { isFirstItem } ?: defaultBaseShape.topEnd,
-                        bottomStart = overrideShape.bottomStart.takeIf { isLastItem } ?: defaultBaseShape.bottomStart,
-                        bottomEnd = overrideShape.bottomEnd.takeIf { isLastItem } ?: defaultBaseShape.bottomEnd,
-                    ),
-                )
-            } else {
-                shapes
-            }
-        },
+        shapes = itemShapes,
         colors = colors,
         contentPadding = contentPadding,
         leadingContent = leadingContent,
@@ -96,13 +113,37 @@ fun NextSegmentedListItem(
     )
 }
 
+/**
+ * Translucent segmented-list colors for Glass UI; the stock opaque colors otherwise. Exposed as a
+ * composable default so every preference surface adopts the treatment from a single place.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun defaultSegmentedListItemColors(): ListItemColors {
+    return if (LocalGlassUi.current) {
+        val container = glassContainerColor()
+        ListItemDefaults.segmentedColors(
+            containerColor = container,
+            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.78f),
+            draggedContainerColor = container.copy(alpha = (container.alpha + 0.1f).coerceAtMost(1f)),
+        )
+    } else {
+        ListItemDefaults.segmentedColors()
+    }
+}
+
+@Composable
+private fun glassBorderColorSafe(glass: Boolean): Color =
+    if (glass) glassBorderColor() else Color.Transparent
+
+
 @Composable
 fun ListSectionTitle(
     modifier: Modifier = Modifier,
     text: String,
     contentPadding: PaddingValues = PaddingValues(
-        start = 12.dp,
-        top = 20.dp,
+        start = 16.dp,
+        top = 24.dp,
         bottom = 10.dp,
     ),
     color: Color = MaterialTheme.colorScheme.primary,
@@ -111,6 +152,6 @@ fun ListSectionTitle(
         text = text,
         modifier = modifier.padding(contentPadding),
         color = color,
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.labelLarge.copy(letterSpacing = 1.2.sp),
     )
 }

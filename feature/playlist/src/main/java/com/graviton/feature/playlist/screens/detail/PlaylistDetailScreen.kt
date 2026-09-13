@@ -85,6 +85,7 @@ import com.graviton.core.ui.designsystem.NextIcons
 import sh.calvin.reorderable.DragGestureDetector
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun PlaylistDetailScreenRoute(
@@ -260,7 +261,7 @@ internal fun PlaylistDetailScreen(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         val containerModifier = Modifier
             .fillMaxSize()

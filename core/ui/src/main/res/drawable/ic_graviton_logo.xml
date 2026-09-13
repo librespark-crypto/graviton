@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Graviton splash mark (drawn on the navy splash background set in themes.xml). -->
+<!-- Graviton brand mark: rounded-triangle play symbol, blue-to-violet gradient, gravitational
+     rings, deep navy background. Used for in-app branding (About screen, splash). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Deep navy rounded card. -->
+    <path android:pathData="M26,0 L82,0 A26,26 0 0 1 108,26 L108,82 A26,26 0 0 1 82,108 L26,108 A26,26 0 0 1 0,82 L0,26 A26,26 0 0 1 26,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="46"
+                android:gradientRadius="86"
+                android:startColor="#FF1B2650"
+                android:endColor="#FF0A0F24" />
+        </aapt:attr>
+    </path>
 
     <!-- Soft gravitational glow behind the mark. -->
     <path android:pathData="M0,0h108v108h-108z">

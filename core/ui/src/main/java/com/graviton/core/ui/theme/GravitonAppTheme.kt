@@ -2,6 +2,7 @@ package com.graviton.core.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import com.graviton.core.model.AppTheme
 import com.graviton.core.model.ApplicationPreferences
 import com.graviton.core.model.ThemeConfig
@@ -14,6 +15,9 @@ import com.graviton.core.model.ThemeConfig
  * untouched. Routing every surface through this one function means the accent, dark mode and
  * contrast preference always come from the same place, and because [preferences] arrives as
  * observed state the change is applied on the next recomposition — no restart.
+ *
+ * It also provides [LocalGlassUi], so any surface below this point can adopt the frosted-glass
+ * treatment without reading the preference itself.
  *
  * @param forceDarkTheme for immersive surfaces such as the video player, which are always dark
  *   regardless of the app's light/dark setting. The *accent* still follows the preference; only
@@ -35,8 +39,11 @@ fun GravitonAppTheme(
         highContrastDarkTheme = preferences.useHighContrastDarkTheme,
         dynamicColor = preferences.useDynamicColors,
         appTheme = preferences.appTheme,
-        content = content,
-    )
+    ) {
+        CompositionLocalProvider(LocalGlassUi provides preferences.useGlassUi) {
+            content()
+        }
+    }
 }
 
 /** Fallback used before preferences have loaded, so the first frame is not un-themed. */
@@ -50,6 +57,10 @@ fun GravitonAppTheme(
     if (preferences != null) {
         GravitonAppTheme(preferences = preferences, forceDarkTheme = forceDarkTheme, content = content)
     } else {
-        GravitonTheme(darkTheme = forceDarkTheme || isSystemInDarkTheme(), appTheme = fallbackAppTheme, content = content)
+        GravitonTheme(darkTheme = forceDarkTheme || isSystemInDarkTheme(), appTheme = fallbackAppTheme) {
+            CompositionLocalProvider(LocalGlassUi provides false) {
+                content()
+            }
+        }
     }
 }

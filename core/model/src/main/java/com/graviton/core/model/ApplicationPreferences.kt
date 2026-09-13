@@ -10,6 +10,7 @@ data class ApplicationPreferences(
     val appTheme: AppTheme = AppTheme.SYSTEM,
     val useHighContrastDarkTheme: Boolean = false,
     val useDynamicColors: Boolean = true,
+    val useGlassUi: Boolean = false,
     val markLastPlayedMedia: Boolean = true,
     val excludeFolders: List<String> = emptyList(),
     val mediaViewMode: MediaViewMode = MediaViewMode.FOLDERS,

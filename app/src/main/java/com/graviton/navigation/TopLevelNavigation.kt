@@ -2,6 +2,8 @@ package com.graviton.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +49,9 @@ import androidx.navigation3.scene.Scene
 import com.graviton.core.ui.R
 import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.core.ui.designsystem.NextIcons
+import com.graviton.core.ui.theme.LocalGlassUi
+import com.graviton.core.ui.theme.glassBorderColor
+import com.graviton.core.ui.theme.glassContainerColor
 import com.graviton.feature.network.navigation.NetworkRoute
 import com.graviton.feature.playlist.navigation.PlaylistListRoute
 import com.graviton.feature.videopicker.navigation.MediaPickerRoute
@@ -162,7 +167,26 @@ fun TopLevelNavState.isNavigationBetweenTopLevelDestinations(initialState: Scene
 @Composable
 fun NextNavigationBar(state: TopLevelNavState, preferences: com.graviton.core.model.ApplicationPreferences?) {
     if (preferences?.showBottomNavigation == false) return
-    NavigationBar {
+    val glass = LocalGlassUi.current
+    val glassContainer = glassContainerColor()
+    val glassBorder = glassBorderColor()
+    NavigationBar(
+        containerColor = if (glass) glassContainer else MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = if (glass) 0.dp else 2.dp,
+        modifier = if (glass) {
+            Modifier.drawBehind {
+                // Hairline top edge separating the translucent bar from content scrolling under it.
+                drawLine(
+                    color = glassBorder,
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, 0f),
+                    strokeWidth = 1f,
+                )
+            }
+        } else {
+            Modifier
+        },
+    ) {
         state.destinations.forEach { dest ->
             val show = when (dest) {
                 TopLevelDestination.PLAYLISTS -> preferences?.showPlaylistsTab ?: true
@@ -185,9 +209,10 @@ fun NextNavigationBar(state: TopLevelNavState, preferences: com.graviton.core.mo
 
 @Composable
 fun NextNavigationRail(state: TopLevelNavState, preferences: com.graviton.core.model.ApplicationPreferences?) {
+    val glass = LocalGlassUi.current
     NavigationRail(
         modifier = Modifier.fillMaxHeight(),
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = if (glass) glassContainerColor() else MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
             modifier = Modifier.fillMaxHeight(),

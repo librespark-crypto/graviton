@@ -60,6 +60,7 @@ import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.core.ui.components.tvListFocus
 import com.graviton.core.ui.designsystem.NextIcons
 import com.graviton.core.ui.theme.GravitonTheme
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun NetworkScreenRoute(
@@ -128,7 +129,7 @@ internal fun NetworkScreen(
                     .tvFocusRing(shape = RoundedCornerShape(16.dp)),
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         val containerModifier = Modifier
             .fillMaxSize()

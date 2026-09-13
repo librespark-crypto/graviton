@@ -18,7 +18,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,6 +47,7 @@ import com.graviton.settings.composables.OptionsDialog
 import com.graviton.settings.extensions.name
 import com.graviton.settings.utils.LocalesHelper
 import java.nio.charset.Charset
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun SubtitlePreferencesScreen(
@@ -89,7 +89,7 @@ private fun SubtitlePreferencesContent(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { innerPadding ->
         Column(
             modifier = Modifier

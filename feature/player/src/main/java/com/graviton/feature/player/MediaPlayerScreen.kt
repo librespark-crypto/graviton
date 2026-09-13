@@ -23,10 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -49,6 +47,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -72,9 +71,11 @@ import com.graviton.core.common.extensions.isTelevision
 import com.graviton.core.model.ControlButtonsPosition
 import com.graviton.core.model.PlayerPreferences
 import com.graviton.core.ui.R as coreUiR
+import com.graviton.core.ui.components.BufferingIndicator
 import com.graviton.core.ui.components.requestFocusUntilLanded
 import com.graviton.core.ui.components.thenIf
 import com.graviton.core.ui.extensions.copy
+import com.graviton.core.ui.theme.LocalGlassUi
 import com.graviton.feature.player.buttons.NextButton
 import com.graviton.feature.player.buttons.PlayPauseButton
 import com.graviton.feature.player.buttons.PlayerButton
@@ -91,6 +92,7 @@ import com.graviton.feature.player.state.rememberErrorState
 import com.graviton.feature.player.state.rememberMediaPresentationState
 import com.graviton.feature.player.state.rememberMetadataState
 import com.graviton.feature.player.state.rememberPictureInPictureState
+import com.graviton.feature.player.state.realBufferedPercentage
 import com.graviton.feature.player.state.rememberPlaybackDiagnosticsState
 import com.graviton.feature.player.state.rememberRotationState
 import com.graviton.feature.player.state.rememberSeekGestureState
@@ -137,6 +139,7 @@ fun MediaPlayerScreen(
         showVolumePanelIfHeadsetIsOn = playerPreferences.showSystemVolumePanel,
     )
     player ?: return
+    val glassUi = LocalGlassUi.current
     val metadataState = rememberMetadataState(player)
     val mediaPresentationState = rememberMediaPresentationState(player)
     val controlsVisibilityState = rememberControlsVisibilityState(
@@ -340,20 +343,48 @@ fun MediaPlayerScreen(
                     enter = fadeIn(),
                     exit = fadeOut(),
                 ) {
+                    // Glass UI keeps the video visible behind the floating control strips: the scrim
+                    // fades to transparent in the middle instead of dimming the whole frame.
                     Box(
                         modifier = modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.3f)),
+                            .background(
+                                if (glassUi) {
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Black.copy(alpha = 0.45f),
+                                            Color.Black.copy(alpha = 0.10f),
+                                            Color.Black.copy(alpha = 0.10f),
+                                            Color.Black.copy(alpha = 0.50f),
+                                        ),
+                                    )
+                                } else {
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Black.copy(alpha = 0.3f), Color.Black.copy(alpha = 0.3f)),
+                                    )
+                                },
+                            ),
                     )
                 }
 
-                if (mediaPresentationState.isBuffering) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(72.dp),
-                    )
-                }
+                // Network-buffering indicator driven by real player state: it is composed only
+                // while the player reports STATE_BUFFERING and shows a percentage only when the
+                // player's buffered position over a known duration is actually measurable.
+                val realBufferedPercentage = mediaPresentationState.realBufferedPercentage
+                BufferingIndicator(
+                    visible = mediaPresentationState.isBuffering,
+                    progress = realBufferedPercentage?.let { it / 100f },
+                    // Lift the pill out of the way of the play/pause row when controls are shown.
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .then(
+                            if (controlsVisibilityState.controlsVisible && !controlsVisibilityState.controlsLocked) {
+                                Modifier.padding(bottom = 120.dp)
+                            } else {
+                                Modifier
+                            },
+                        ),
+                )
 
                 DoubleTapIndicator(tapGestureState = tapGestureState)
 
