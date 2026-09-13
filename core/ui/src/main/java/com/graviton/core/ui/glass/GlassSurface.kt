@@ -1,7 +1,7 @@
 package com.graviton.core.ui.glass
 
 import android.view.WindowManager
-import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
