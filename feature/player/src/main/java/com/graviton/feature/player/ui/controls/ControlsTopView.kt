@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
@@ -21,11 +22,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.graviton.core.model.DecoderMode
 import com.graviton.core.ui.R
 import com.graviton.core.ui.extensions.copy
+import com.graviton.core.ui.glass.GlassSurface
+import com.graviton.core.ui.glass.isGlassUiEnabled
 import com.graviton.feature.player.buttons.PlayerButton
 import com.graviton.feature.player.extensions.nameRes
 
@@ -51,9 +55,46 @@ fun ControlsTopView(
     val systemBarsPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout).asPaddingValues()
     // Add top spacing only when the system bars don't already provide it (e.g. on TV / landscape).
     val extraTopPadding = if (systemBarsPadding.calculateTopPadding() == 0.dp) 16.dp else 0.dp
-    Row(
+    // Glass UI: the bar floats as a frosted pill. The wrapper is always in the tree and draws
+    // nothing when glass is off, so the stock layout below stays pixel-identical.
+    val glassEnabled = isGlassUiEnabled()
+    GlassSurface(
         modifier = modifier
             .padding(systemBarsPadding.copy(bottom = 0.dp))
+            .padding(horizontal = if (glassEnabled) 12.dp else 0.dp)
+            .padding(top = if (glassEnabled) 8.dp else 0.dp),
+        enabled = glassEnabled,
+    ) {
+        ControlsTopBarContent(
+            title = title,
+            currentDecoderMode = currentDecoderMode,
+            extraTopPadding = extraTopPadding,
+            onAudioClick = onAudioClick,
+            onSubtitleClick = onSubtitleClick,
+            onPlaybackSpeedClick = onPlaybackSpeedClick,
+            onDecoderClick = onDecoderClick,
+            onMoreClick = onMoreClick,
+            onBackClick = onBackClick,
+        )
+    }
+}
+
+@Composable
+private fun ControlsTopBarContent(
+    modifier: Modifier = Modifier,
+    title: String,
+    currentDecoderMode: DecoderMode,
+    extraTopPadding: Dp,
+    onAudioClick: () -> Unit,
+    onSubtitleClick: () -> Unit,
+    onPlaybackSpeedClick: () -> Unit,
+    onDecoderClick: () -> Unit,
+    onMoreClick: () -> Unit,
+    onBackClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
             .padding(horizontal = 8.dp)
             .padding(bottom = 16.dp)
             .padding(top = extraTopPadding),

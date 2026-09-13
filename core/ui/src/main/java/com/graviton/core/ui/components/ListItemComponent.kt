@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.graviton.core.ui.glass.glassAwareColor
+import com.graviton.core.ui.glass.rememberGlassSpec
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -49,6 +51,15 @@ fun NextSegmentedListItem(
     val focusInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
     val isFocused by focusInteractionSource.collectIsFocusedAsState()
     val focusScale by animateFloatAsState(targetValue = if (isFocused) 1.01f else 1f, label = "focusScale")
+
+    // Glass UI: preference cards become frosted translucent tiles. The color crossfades on toggle
+    // (see glassAwareColor) and resolves to the stock container when glass is off, so hierarchy,
+    // shapes and touch targets never change.
+    val spec = rememberGlassSpec()
+    val glassContainer = glassAwareColor(glass = spec.cardContainer, normal = colors.containerColor)
+    val resolvedColors = remember(colors, glassContainer) {
+        colors.copy(containerColor = glassContainer)
+    }
 
     SegmentedListItem(
         modifier = modifier
@@ -85,7 +96,7 @@ fun NextSegmentedListItem(
                 shapes
             }
         },
-        colors = colors,
+        colors = resolvedColors,
         contentPadding = contentPadding,
         leadingContent = leadingContent,
         supportingContent = supportingContent,

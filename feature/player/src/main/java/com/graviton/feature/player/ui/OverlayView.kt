@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
@@ -59,6 +60,10 @@ import com.graviton.core.common.extensions.isTelevision
 import com.graviton.core.ui.R
 import com.graviton.core.ui.components.requestFocusUntilLanded
 import com.graviton.core.ui.designsystem.NextIcons
+import com.graviton.core.ui.glass.GlassTokens
+import com.graviton.core.ui.glass.glassAwareColor
+import com.graviton.core.ui.glass.isGlassUiEnabled
+import com.graviton.core.ui.glass.rememberGlassSpec
 import com.graviton.core.ui.theme.GravitonTheme
 
 /**
@@ -134,6 +139,15 @@ fun BoxScope.OverlayView(
             exit = (if (isPortrait) slideOutVertically { it } else slideOutHorizontally { it }) +
                 fadeOut(animationSpec = tween(durationMillis = 110)),
         ) {
+            // Glass UI: the sheet becomes a frosted panel with a hairline edge highlight and a
+            // soft shadow. Geometry and translucency otherwise stay as designed, so the video
+            // remains partly visible and rows keep their contrast.
+            val spec = rememberGlassSpec()
+            val sheetColor = glassAwareColor(
+                glass = spec.sheetContainer,
+                normal = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
+            )
+            val sheetBorder = glassAwareColor(glass = spec.border, normal = Color.Transparent)
             Surface(
                 shape = if (isPortrait) {
                     RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)
@@ -142,9 +156,11 @@ fun BoxScope.OverlayView(
                 },
                 // Translucent by design: the video stays readable behind the sheet, and the
                 // colour is a theme token so the app accent tints the sheet automatically.
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
+                color = sheetColor,
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 tonalElevation = 0.dp,
+                shadowElevation = if (isGlassUiEnabled()) 16.dp else 0.dp,
+                border = BorderStroke(GlassTokens.BorderWidth, sheetBorder),
                 modifier = modifier
                     .semantics { isTraversalGroup = true }
                     .then(

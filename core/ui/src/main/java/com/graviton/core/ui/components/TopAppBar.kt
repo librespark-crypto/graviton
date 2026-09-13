@@ -9,10 +9,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.graviton.core.ui.glass.glassAwareColor
+import com.graviton.core.ui.glass.rememberGlassSpec
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,11 +28,17 @@ fun NextTopAppBar(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ),
 ) {
+    val spec = rememberGlassSpec()
+    val glassContainer = glassAwareColor(glass = spec.navigationContainer, normal = colors.containerColor)
+    val glassScrolled = glassAwareColor(glass = spec.navigationContainer, normal = colors.scrolledContainerColor)
+    val resolvedColors = remember(colors, glassContainer, glassScrolled) {
+        colors.copy(containerColor = glassContainer, scrolledContainerColor = glassScrolled)
+    }
     TopAppBar(
         title = title,
         navigationIcon = navigationIcon,
         actions = actions,
-        colors = colors,
+        colors = resolvedColors,
         modifier = modifier,
         contentPadding = PaddingValues(horizontal = 8.dp),
     )

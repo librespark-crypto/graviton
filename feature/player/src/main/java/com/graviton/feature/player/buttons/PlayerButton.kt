@@ -1,8 +1,10 @@
 package com.graviton.feature.player.buttons
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
@@ -17,6 +19,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -25,6 +28,10 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
 import com.graviton.core.common.extensions.isTelevision
 import com.graviton.core.ui.components.tvFocusRing
+import com.graviton.core.ui.glass.GlassTokens
+import com.graviton.core.ui.glass.glassAwareColor
+import com.graviton.core.ui.glass.isGlassUiEnabled
+import com.graviton.core.ui.glass.rememberGlassSpec
 import com.graviton.feature.player.LocalUseMaterialYouControls
 import com.graviton.feature.player.state.LocalHoldSpeedController
 import kotlinx.coroutines.delay
@@ -83,13 +90,34 @@ fun PlayerButton(
         }
     }
 
+    val glassEnabled = isGlassUiEnabled()
+    val spec = rememberGlassSpec()
+    // Glass UI: transport controls sit in frosted round wells so they stay prominent and readable
+    // over bright video. An explicit containerColor (e.g. the unlock button's dark well) always
+    // wins; otherwise the fill crossfades between transparent and glass.
+    val glassContainer = glassAwareColor(glass = spec.controlContainer, normal = containerColor)
+    val resolvedContainer = if (containerColor == Color.Transparent) glassContainer else containerColor
+    val glassBorder = glassAwareColor(glass = spec.border, normal = Color.Transparent)
+    val glassModifier = if (glassEnabled) {
+        Modifier.clip(CircleShape).border(GlassTokens.BorderWidth, glassBorder, CircleShape)
+    } else {
+        Modifier
+    }
+
     if (LocalUseMaterialYouControls.current) {
         FilledTonalIconButton(
             onClick = {},
             enabled = isEnabled,
-            modifier = modifier.size(40.dp).tvFocusRing(isTv),
+            modifier = modifier.size(40.dp).tvFocusRing(isTv).then(glassModifier),
             interactionSource = interactionSource,
-            content = content
+            colors = if (glassEnabled) {
+                IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = spec.controlContainer,
+                )
+            } else {
+                IconButtonDefaults.filledTonalIconButtonColors()
+            },
+            content = content,
         )
     } else {
         // The classic (non-Material-You) controls still need to read against arbitrary video, but
@@ -112,9 +140,9 @@ fun PlayerButton(
             IconButton(
                 onClick = {},
                 enabled = isEnabled,
-                modifier = modifier.tvFocusRing(isTv),
+                modifier = modifier.tvFocusRing(isTv).then(glassModifier),
                 interactionSource = interactionSource,
-                colors = IconButtonDefaults.iconButtonColors().copy(containerColor = containerColor),
+                colors = IconButtonDefaults.iconButtonColors().copy(containerColor = resolvedContainer),
                 content = content,
             )
         }

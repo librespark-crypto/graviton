@@ -41,6 +41,7 @@ class AppearancePreferencesViewModel @Inject constructor(
             is AppearancePreferencesEvent.UpdateAppTheme -> updateAppTheme(event.appTheme)
             AppearancePreferencesEvent.ToggleUseDynamicColors -> toggleUseDynamicColors()
             AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme -> toggleUseHighContrastDarkTheme()
+            AppearancePreferencesEvent.ToggleGlassUi -> toggleGlassUi()
             AppearancePreferencesEvent.ToggleShowBottomNavigation -> toggleShowBottomNavigation()
             AppearancePreferencesEvent.ToggleShowPlaylistsTab -> toggleShowPlaylistsTab()
             AppearancePreferencesEvent.ToggleShowNetworkTab -> toggleShowNetworkTab()
@@ -96,6 +97,14 @@ class AppearancePreferencesViewModel @Inject constructor(
         }
     }
 
+    private fun toggleGlassUi() {
+        viewModelScope.launch {
+            preferencesRepository.updateApplicationPreferences {
+                it.copy(glassUiEnabled = !it.glassUiEnabled)
+            }
+        }
+    }
+
     private fun toggleShowBottomNavigation() {
         viewModelScope.launch {
             preferencesRepository.updateApplicationPreferences {
@@ -142,6 +151,7 @@ sealed interface AppearancePreferencesEvent {
     data class UpdateAppTheme(val appTheme: com.graviton.core.model.AppTheme) : AppearancePreferencesEvent
     data object ToggleUseDynamicColors : AppearancePreferencesEvent
     data object ToggleUseHighContrastDarkTheme : AppearancePreferencesEvent
+    data object ToggleGlassUi : AppearancePreferencesEvent
     data object ToggleShowBottomNavigation : AppearancePreferencesEvent
     data object ToggleShowPlaylistsTab : AppearancePreferencesEvent
     data object ToggleShowNetworkTab : AppearancePreferencesEvent

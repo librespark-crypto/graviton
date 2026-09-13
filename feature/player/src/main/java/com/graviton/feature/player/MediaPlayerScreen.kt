@@ -4,8 +4,11 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -76,6 +79,11 @@ import com.graviton.core.ui.R as coreUiR
 import com.graviton.core.ui.components.requestFocusUntilLanded
 import com.graviton.core.ui.components.thenIf
 import com.graviton.core.ui.extensions.copy
+import com.graviton.core.ui.glass.GlassCapsule
+import com.graviton.core.ui.glass.GlassTokens
+import com.graviton.core.ui.glass.glassAwareColor
+import com.graviton.core.ui.glass.isGlassUiEnabled
+import com.graviton.core.ui.glass.rememberGlassSpec
 import com.graviton.feature.player.buttons.NextButton
 import com.graviton.feature.player.buttons.PlayPauseButton
 import com.graviton.feature.player.buttons.PlayerButton
@@ -628,17 +636,33 @@ fun InfoView(
     info: String,
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
 ) {
-    Column(
+    // Glass UI: transient gesture feedback (seek position, zoom %, content scale) sits in a
+    // frosted capsule so it stays readable over bright video. The wrapper draws nothing when
+    // glass is off, keeping the stock bare-text layout.
+    val glassEnabled = isGlassUiEnabled()
+    val capsulePadding by animateDpAsState(
+        targetValue = if (glassEnabled) 12.dp else 0.dp,
+        animationSpec = tween(durationMillis = GlassTokens.CrossfadeDurationMillis),
+        label = "glassInfoPadding",
+    )
+    Box(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = info,
-            style = textStyle,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-        )
+        GlassCapsule(enabled = glassEnabled) {
+            Column(
+                modifier = Modifier.padding(horizontal = capsulePadding * 2, vertical = capsulePadding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = info,
+                    style = textStyle,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
     }
 }
 
@@ -658,9 +682,13 @@ fun BoxScope.DpadSeekIndicator(
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
+        val spec = rememberGlassSpec()
+        val containerColor = glassAwareColor(glass = spec.capsuleContainer, normal = Color.Black.copy(alpha = 0.6f))
+        val borderColor = glassAwareColor(glass = spec.border, normal = Color.Transparent)
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = Color.Black.copy(alpha = 0.6f),
+            color = containerColor,
+            border = BorderStroke(GlassTokens.BorderWidth, borderColor),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),

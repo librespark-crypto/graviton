@@ -3,6 +3,7 @@ package com.graviton.feature.player.ui
 import androidx.annotation.IntRange
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.graviton.core.ui.R
+import com.graviton.core.ui.glass.GlassTokens
+import com.graviton.core.ui.glass.glassAwareColor
+import com.graviton.core.ui.glass.rememberGlassSpec
 import com.graviton.core.ui.theme.GravitonTheme
 
 private const val NORMAL_MAX_PERCENTAGE = 100
@@ -52,11 +56,17 @@ fun VerticalProgressView(
 
     val textStr = normalizedValue.toString()
 
+    // Glass UI: the gesture indicator becomes a frosted capsule with a hairline edge highlight.
+    // Colors crossfade on toggle; glass off resolves to the stock translucent black.
+    val spec = rememberGlassSpec()
+    val containerColor = glassAwareColor(glass = spec.capsuleContainer, normal = Color.Black.copy(alpha = 0.5f))
+    val borderColor = glassAwareColor(glass = spec.border, normal = Color.Transparent)
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
-        color = Color.Black.copy(alpha = 0.5f),
+        color = containerColor,
         contentColor = Color.White,
+        border = BorderStroke(GlassTokens.BorderWidth, borderColor),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 20.dp),
