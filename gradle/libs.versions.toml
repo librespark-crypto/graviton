@@ -46,6 +46,7 @@ nanohttpd = "2.3.1"
 
 
 [libraries]
+androidx-compose-animation = { group = "androidx.compose.animation", name = "animation" }
 aboutlibraries-core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutlibraries" }
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
