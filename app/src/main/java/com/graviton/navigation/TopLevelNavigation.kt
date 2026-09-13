@@ -188,7 +188,7 @@ fun NextNavigationBar(state: TopLevelNavState, preferences: com.graviton.core.mo
     Box(modifier = Modifier.padding(horizontal = outerPadding).padding(bottom = outerPadding)) {
         NavigationBar(
             containerColor = containerColor,
-            tonalElevation = if (glassEnabled) 0.dp else NavigationBarDefaults.TonalElevation,
+            tonalElevation = if (glassEnabled) 0.dp else NavigationBarDefaults.Elevation,
             modifier = Modifier
                 .clip(barShape)
                 .border(GlassTokens.BorderWidth, borderColor, barShape),

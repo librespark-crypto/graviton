@@ -34,6 +34,7 @@ fun isGlassUiEnabled(): Boolean = LocalGlassEnabled.current
  * playback — glass surfaces gracefully fall back to GPU-cheap translucent fills, so no per-frame
  * blur work is ever added to the playback path.
  */
+@ChecksSdkIntAtLeast(api = Build.VERSION_CODES.S)
 fun supportsGlassBackdropBlur(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
 /** Shared glass geometry and animation constants. */
