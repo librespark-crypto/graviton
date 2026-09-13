@@ -41,6 +41,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -219,9 +220,10 @@ fun MediaPlayerScreen(
     // The gesture onboarding is offered once after first successful player launch.
     var hasHandledInitialGestureHelp by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(uiState.gestureHelpShown, player) {
-        if (!hasHandledInitialGestureHelp && player != null) {
+        val helpShown = uiState.gestureHelpShown
+        if (!hasHandledInitialGestureHelp && player != null && !helpShown) {
             hasHandledInitialGestureHelp = true
-            if (!uiState.gestureHelpShown && overlayView == null) {
+            if (overlayView == null) {
                 overlayView = OverlayView.TUTORIAL
                 viewModel.setGestureHelpShown(true)
             }
