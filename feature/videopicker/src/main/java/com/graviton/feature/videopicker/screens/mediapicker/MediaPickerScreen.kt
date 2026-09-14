@@ -133,6 +133,7 @@ import com.graviton.feature.videopicker.state.SelectionItem
 import com.graviton.feature.videopicker.state.SelectionManager
 import com.graviton.feature.videopicker.state.rememberSelectionManager
 import kotlin.math.roundToInt
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun MediaPickerRoute(
@@ -515,7 +516,7 @@ internal fun MediaPickerScreen(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { scaffoldPadding ->
         if (!permissionState.status.isGranted) {
             Box(

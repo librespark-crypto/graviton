@@ -15,7 +15,6 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +34,7 @@ import com.graviton.core.ui.components.PreferenceSwitchWithDivider
 import com.graviton.core.ui.components.RadioTextButton
 import com.graviton.core.ui.designsystem.NextIcons
 import com.graviton.core.ui.theme.GravitonTheme
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 import com.graviton.core.ui.theme.supportsDynamicTheming
 import com.graviton.settings.composables.OptionsDialog
 import com.graviton.settings.extensions.name
@@ -76,7 +76,7 @@ private fun AppearancePreferencesContent(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -84,7 +84,8 @@ private fun AppearancePreferencesContent(
                 .verticalScroll(state = rememberScrollState())
                 .tvListFocus(listFocusRequester)
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
         ) {
             ListSectionTitle(text = stringResource(id = R.string.appearance_name))
             Column(
@@ -97,56 +98,59 @@ private fun AppearancePreferencesContent(
                     onChecked = { onEvent(AppearancePreferencesEvent.ToggleDarkTheme) },
                     icon = NextIcons.DarkMode,
                     onClick = { onEvent(AppearancePreferencesEvent.ShowDialog(AppearancePreferenceDialog.Theme)) },
-                    isFirstItem = true
+                    isFirstItem = true,
                 )
                 ClickablePreferenceItem(
-                    title = "App Colors",
+                    title = stringResource(id = R.string.app_colors),
                     description = uiState.preferences.appTheme.name(),
                     icon = NextIcons.Appearance,
                     onClick = { onEvent(AppearancePreferencesEvent.ShowDialog(AppearancePreferenceDialog.AppTheme)) },
-                    isFirstItem = true
                 )
+                if (supportsDynamicTheming()) {
+                    PreferenceSwitch(
+                        title = stringResource(id = R.string.dynamic_theme),
+                        description = stringResource(id = R.string.dynamic_theme_description),
+                        icon = NextIcons.Style,
+                        isChecked = uiState.preferences.useDynamicColors,
+                        onClick = { onEvent(AppearancePreferencesEvent.ToggleUseDynamicColors) },
+                    )
+                }
                 PreferenceSwitch(
                     title = stringResource(R.string.high_contrast_dark_theme),
                     description = stringResource(R.string.high_contrast_dark_theme_desc),
                     icon = NextIcons.Contrast,
                     isChecked = uiState.preferences.useHighContrastDarkTheme,
                     onClick = { onEvent(AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme) },
-                    isLastItem = !supportsDynamicTheming()
                 )
-                if (supportsDynamicTheming()) {
-                    PreferenceSwitch(
-                        title = stringResource(id = R.string.dynamic_theme),
-                        description = stringResource(id = R.string.dynamic_theme_description),
-                        icon = NextIcons.Appearance,
-                        isChecked = uiState.preferences.useDynamicColors,
-                        onClick = { onEvent(AppearancePreferencesEvent.ToggleUseDynamicColors) },
-                        isLastItem = false
-                    )
-                }
-
                 PreferenceSwitch(
                     title = stringResource(R.string.pure_black_theme),
                     description = stringResource(R.string.pure_black_theme_desc),
                     icon = NextIcons.DarkMode,
-                    isChecked = uiState.preferences.appTheme == AppTheme.AMOLED, // Mocking pure black as a distinct theme or toggle
-                    onClick = {
-                        // If AMOLED is requested, usually we just update appTheme to BLACK if we have one.
-                        // Let's assume there is an AppTheme enum and we can use it.
-                        onEvent(AppearancePreferencesEvent.UpdateAppTheme(AppTheme.AMOLED))
-                    },
-                )
-                PreferenceSwitch(
-                    title = stringResource(R.string.glass_ui),
-                    description = stringResource(R.string.glass_ui_desc),
-                    icon = NextIcons.Glass,
-                    isChecked = uiState.preferences.glassUiEnabled,
-                    onClick = { onEvent(AppearancePreferencesEvent.ToggleGlassUi) },
+                    isChecked = uiState.preferences.appTheme == AppTheme.AMOLED,
+                    onClick = { onEvent(AppearancePreferencesEvent.TogglePureBlackTheme) },
                     isLastItem = true,
                 )
+            }
 
-                ListSectionTitle(text = "Navigation Bar")
+            ListSectionTitle(text = stringResource(id = R.string.glass_ui))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+            ) {
+                PreferenceSwitch(
+                    title = stringResource(R.string.glass_ui),
+                    description = stringResource(R.string.glass_ui_description),
+                    icon = NextIcons.Blur,
+                    isChecked = uiState.preferences.useGlassUi,
+                    onClick = { onEvent(AppearancePreferencesEvent.ToggleGlassUi) },
+                    isFirstItem = true,
+                    isLastItem = true,
+                )
+            }
 
+            ListSectionTitle(text = stringResource(id = R.string.navigation_bar_section))
+            Column(
+                verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap),
+            ) {
                 PreferenceSwitchWithDivider(
                     title = stringResource(R.string.show_bottom_navigation),
                     description = stringResource(R.string.show_bottom_navigation_desc),
@@ -193,7 +197,7 @@ private fun AppearancePreferencesContent(
                 }
                 AppearancePreferenceDialog.AppTheme -> {
                     OptionsDialog(
-                        text = "App Theme",
+                        text = stringResource(id = R.string.app_colors),
                         onDismissClick = { onEvent(AppearancePreferencesEvent.ShowDialog(null)) },
                     ) {
                         items(AppTheme.entries.toTypedArray()) {

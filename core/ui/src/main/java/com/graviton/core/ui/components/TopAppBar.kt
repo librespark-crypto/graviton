@@ -9,13 +9,36 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.graviton.core.ui.glass.glassAwareColor
-import com.graviton.core.ui.glass.rememberGlassSpec
+import com.graviton.core.ui.theme.LocalGlassUi
+import com.graviton.core.ui.theme.glassBorderColor
+import com.graviton.core.ui.theme.glassContainerColor
+
+/**
+ * Default app bar colors for Graviton screens. In Glass UI mode the bar becomes translucent so
+ * the backdrop shows through; otherwise it is the standard opaque surface container.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun defaultAppBarColors(): TopAppBarColors {
+    return if (LocalGlassUi.current) {
+        val container = glassContainerColor()
+        TopAppBarDefaults.topAppBarColors(
+            containerColor = container,
+            scrolledContainerColor = container.copy(alpha = (container.alpha + 0.12f).coerceAtMost(1f)),
+        )
+    } else {
+        TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,22 +47,29 @@ fun NextTopAppBar(
     title: @Composable () -> Unit,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
-    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-    ),
+    colors: TopAppBarColors? = null,
 ) {
-    val spec = rememberGlassSpec()
-    val glassContainer = glassAwareColor(glass = spec.navigationContainer, normal = colors.containerColor)
-    val glassScrolled = glassAwareColor(glass = spec.navigationContainer, normal = colors.scrolledContainerColor)
-    val resolvedColors = remember(colors, glassContainer, glassScrolled) {
-        colors.copy(containerColor = glassContainer, scrolledContainerColor = glassScrolled)
-    }
+    val glass = LocalGlassUi.current
+    val borderColor = if (glass) glassBorderColor() else Color.Transparent
     TopAppBar(
         title = title,
         navigationIcon = navigationIcon,
         actions = actions,
-        colors = resolvedColors,
-        modifier = modifier,
+        colors = colors ?: defaultAppBarColors(),
+        modifier = if (glass) {
+            modifier.drawBehind {
+                // Hairline separation so the translucent bar stays readable over bright content.
+                val y = size.height - 1f
+                drawLine(
+                    color = borderColor,
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 1f,
+                )
+            }
+        } else {
+            modifier
+        },
         contentPadding = PaddingValues(horizontal = 8.dp),
     )
 }
@@ -52,9 +82,7 @@ fun NextTopAppBar(
     fontWeight: FontWeight? = null,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
-    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-    ),
+    colors: TopAppBarColors? = null,
 ) {
     NextTopAppBar(
         title = {

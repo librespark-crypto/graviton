@@ -27,6 +27,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -81,10 +82,10 @@ import com.graviton.core.ui.components.rememberTvListFocusRequester
 import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.core.ui.components.tvListFocus
 import com.graviton.core.ui.designsystem.NextIcons
-import com.graviton.core.ui.glass.GlassFloatingActionButton
 import sh.calvin.reorderable.DragGestureDetector
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun PlaylistDetailScreenRoute(
@@ -241,7 +242,7 @@ internal fun PlaylistDetailScreen(
         },
         floatingActionButton = {
             if (!uiState.isSearching && !isReordering && playbackStartUri != null) {
-                GlassFloatingActionButton(
+                FloatingActionButton(
                     onClick = {
                         onAction(
                             PlaylistDetailUiAction.OnPlayVideos(
@@ -260,7 +261,7 @@ internal fun PlaylistDetailScreen(
                 }
             }
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         val containerModifier = Modifier
             .fillMaxSize()

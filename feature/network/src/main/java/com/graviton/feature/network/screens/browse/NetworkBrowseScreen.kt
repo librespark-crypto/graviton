@@ -54,6 +54,7 @@ import com.graviton.core.ui.components.tvListFocus
 import com.graviton.core.ui.designsystem.NextIcons
 import com.graviton.feature.network.ObserveAsEvents
 import java.util.Date
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun NetworkBrowseScreenRoute(
@@ -98,7 +99,7 @@ internal fun NetworkBrowseScreen(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         when {
             uiState.isLoading -> {

@@ -27,7 +27,7 @@ Key Features:
  * No ads, tracking or excessive permissions
  * Picture in picture mode
 
-Project Repo: https://github.com/graviton/graviton
+Project Repo: https://github.com/librespark-crypto/graviton
 
 If you like my work, consider supporting me by buying me a coffee:
  - UPI: https://pay.upilink.in/pay/graviton@ybl

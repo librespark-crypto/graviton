@@ -25,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +45,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.graviton.core.ui.R
-import com.graviton.core.ui.glass.GlassFloatingActionButton
 
 /**
  * Structured LRC editor.
@@ -95,7 +95,7 @@ fun LyricsEditorScreen(
             )
         },
         floatingActionButton = {
-            GlassFloatingActionButton(onClick = { state.addLineAfter(state.lines.lastIndex, positionMs()) }) {
+            FloatingActionButton(onClick = { state.addLineAfter(state.lines.lastIndex, positionMs()) }) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.lyrics_add_line))
             }
         },

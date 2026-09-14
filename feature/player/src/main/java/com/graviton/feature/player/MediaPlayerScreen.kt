@@ -4,11 +4,8 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,10 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -53,6 +48,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -76,14 +72,11 @@ import com.graviton.core.common.extensions.isTelevision
 import com.graviton.core.model.ControlButtonsPosition
 import com.graviton.core.model.PlayerPreferences
 import com.graviton.core.ui.R as coreUiR
+import com.graviton.core.ui.components.BufferingIndicator
 import com.graviton.core.ui.components.requestFocusUntilLanded
 import com.graviton.core.ui.components.thenIf
 import com.graviton.core.ui.extensions.copy
-import com.graviton.core.ui.glass.GlassCapsule
-import com.graviton.core.ui.glass.GlassTokens
-import com.graviton.core.ui.glass.glassAwareColor
-import com.graviton.core.ui.glass.isGlassUiEnabled
-import com.graviton.core.ui.glass.rememberGlassSpec
+import com.graviton.core.ui.theme.LocalGlassUi
 import com.graviton.feature.player.buttons.NextButton
 import com.graviton.feature.player.buttons.PlayPauseButton
 import com.graviton.feature.player.buttons.PlayerButton
@@ -100,6 +93,7 @@ import com.graviton.feature.player.state.rememberErrorState
 import com.graviton.feature.player.state.rememberMediaPresentationState
 import com.graviton.feature.player.state.rememberMetadataState
 import com.graviton.feature.player.state.rememberPictureInPictureState
+import com.graviton.feature.player.state.realBufferedPercentage
 import com.graviton.feature.player.state.rememberPlaybackDiagnosticsState
 import com.graviton.feature.player.state.rememberRotationState
 import com.graviton.feature.player.state.rememberSeekGestureState
@@ -146,6 +140,7 @@ fun MediaPlayerScreen(
         showVolumePanelIfHeadsetIsOn = playerPreferences.showSystemVolumePanel,
     )
     player ?: return
+    val glassUi = LocalGlassUi.current
     val metadataState = rememberMetadataState(player)
     val mediaPresentationState = rememberMediaPresentationState(player)
     val controlsVisibilityState = rememberControlsVisibilityState(
@@ -228,10 +223,9 @@ fun MediaPlayerScreen(
     // The gesture onboarding is offered once after first successful player launch.
     var hasHandledInitialGestureHelp by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(uiState.gestureHelpShown, player) {
-        val helpShown = uiState.gestureHelpShown
-        if (!hasHandledInitialGestureHelp && player != null && !helpShown) {
+        if (!hasHandledInitialGestureHelp && player != null) {
             hasHandledInitialGestureHelp = true
-            if (overlayView == null) {
+            if (!uiState.gestureHelpShown && overlayView == null) {
                 overlayView = OverlayView.TUTORIAL
                 viewModel.setGestureHelpShown(true)
             }
@@ -350,20 +344,48 @@ fun MediaPlayerScreen(
                     enter = fadeIn(),
                     exit = fadeOut(),
                 ) {
+                    // Glass UI keeps the video visible behind the floating control strips: the scrim
+                    // fades to transparent in the middle instead of dimming the whole frame.
                     Box(
                         modifier = modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.3f)),
+                            .background(
+                                if (glassUi) {
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Black.copy(alpha = 0.45f),
+                                            Color.Black.copy(alpha = 0.10f),
+                                            Color.Black.copy(alpha = 0.10f),
+                                            Color.Black.copy(alpha = 0.50f),
+                                        ),
+                                    )
+                                } else {
+                                    Brush.verticalGradient(
+                                        colors = listOf(Color.Black.copy(alpha = 0.3f), Color.Black.copy(alpha = 0.3f)),
+                                    )
+                                },
+                            ),
                     )
                 }
 
-                if (mediaPresentationState.isBuffering) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(72.dp),
-                    )
-                }
+                // Network-buffering indicator driven by real player state: it is composed only
+                // while the player reports STATE_BUFFERING and shows a percentage only when the
+                // player's buffered position over a known duration is actually measurable.
+                val realBufferedPercentage = mediaPresentationState.realBufferedPercentage
+                BufferingIndicator(
+                    visible = mediaPresentationState.isBuffering,
+                    progress = realBufferedPercentage?.let { it / 100f },
+                    // Lift the pill out of the way of the play/pause row when controls are shown.
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .then(
+                            if (controlsVisibilityState.controlsVisible && !controlsVisibilityState.controlsLocked) {
+                                Modifier.padding(bottom = 120.dp)
+                            } else {
+                                Modifier
+                            },
+                        ),
+                )
 
                 DoubleTapIndicator(tapGestureState = tapGestureState)
 
@@ -636,33 +658,17 @@ fun InfoView(
     info: String,
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
 ) {
-    // Glass UI: transient gesture feedback (seek position, zoom %, content scale) sits in a
-    // frosted capsule so it stays readable over bright video. The wrapper draws nothing when
-    // glass is off, keeping the stock bare-text layout.
-    val glassEnabled = isGlassUiEnabled()
-    val capsulePadding by animateDpAsState(
-        targetValue = if (glassEnabled) 12.dp else 0.dp,
-        animationSpec = tween(durationMillis = GlassTokens.CrossfadeDurationMillis),
-        label = "glassInfoPadding",
-    )
-    Box(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        GlassCapsule(enabled = glassEnabled) {
-            Column(
-                modifier = Modifier.padding(horizontal = capsulePadding * 2, vertical = capsulePadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    text = info,
-                    style = textStyle,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
+        Text(
+            text = info,
+            style = textStyle,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -682,13 +688,9 @@ fun BoxScope.DpadSeekIndicator(
         enter = fadeIn(),
         exit = fadeOut(),
     ) {
-        val spec = rememberGlassSpec()
-        val containerColor = glassAwareColor(glass = spec.capsuleContainer, normal = Color.Black.copy(alpha = 0.6f))
-        val borderColor = glassAwareColor(glass = spec.border, normal = Color.Transparent)
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = containerColor,
-            border = BorderStroke(GlassTokens.BorderWidth, borderColor),
+            color = Color.Black.copy(alpha = 0.6f),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),

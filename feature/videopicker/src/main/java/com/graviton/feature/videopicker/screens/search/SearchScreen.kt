@@ -74,6 +74,7 @@ import com.graviton.core.ui.extensions.plus
 import com.graviton.core.ui.theme.GravitonTheme
 import com.graviton.feature.videopicker.composables.FolderItem
 import com.graviton.feature.videopicker.composables.MediaView
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun SearchRoute(
@@ -171,7 +172,7 @@ internal fun SearchScreen(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { scaffoldPadding ->
         Column(
             modifier = Modifier
