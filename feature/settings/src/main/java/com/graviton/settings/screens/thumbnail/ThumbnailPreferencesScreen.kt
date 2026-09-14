@@ -46,6 +46,7 @@ import com.graviton.core.ui.components.SingleSelectablePreference
 import com.graviton.core.ui.designsystem.NextIcons
 import com.graviton.core.ui.theme.GravitonTheme
 import kotlin.math.abs
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun ThumbnailPreferencesScreen(
@@ -93,7 +94,7 @@ private fun ThumbnailPreferencesContent(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { innerPadding ->
         Column(
             modifier = Modifier

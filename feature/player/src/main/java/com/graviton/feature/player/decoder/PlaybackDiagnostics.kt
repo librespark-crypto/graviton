@@ -94,13 +94,11 @@ class PlaybackDiagnostics(
             spec?.bitDepth == BitDepth.EIGHT -> "8-bit"
             else -> null
         }
-        val profile = spec?.profile
-        val profileStr = if (spec != null && profile != null) {
-            getProfileName(spec.codec, profile)
+        val profileStr = if (spec?.profile != null) {
+            getProfileName(spec.codec, spec.profile!!)
         } else null
-        val level = spec?.level
-        val levelStr = if (spec != null && level != null) {
-            getLevelName(spec.codec, level)
+        val levelStr = if (spec?.level != null) {
+            getLevelName(spec.codec, spec.level!!)
         } else null
 
         val bitrateVal = if (format.bitrate != Format.NO_VALUE && format.bitrate > 0) {

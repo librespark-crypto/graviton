@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.graviton.core.data.repository.PreferencesRepository
+import com.graviton.core.model.AppTheme
 import com.graviton.core.model.ApplicationPreferences
 import com.graviton.core.model.ThemeConfig
 import javax.inject.Inject
@@ -42,10 +43,25 @@ class AppearancePreferencesViewModel @Inject constructor(
             AppearancePreferencesEvent.ToggleUseDynamicColors -> toggleUseDynamicColors()
             AppearancePreferencesEvent.ToggleUseHighContrastDarkTheme -> toggleUseHighContrastDarkTheme()
             AppearancePreferencesEvent.ToggleGlassUi -> toggleGlassUi()
+            AppearancePreferencesEvent.TogglePureBlackTheme -> togglePureBlackTheme()
             AppearancePreferencesEvent.ToggleShowBottomNavigation -> toggleShowBottomNavigation()
             AppearancePreferencesEvent.ToggleShowPlaylistsTab -> toggleShowPlaylistsTab()
             AppearancePreferencesEvent.ToggleShowNetworkTab -> toggleShowNetworkTab()
             AppearancePreferencesEvent.ToggleShowMusicTab -> toggleShowMusicTab()
+        }
+    }
+
+    /**
+     * Switches the app palette between the AMOLED (pure black) theme and the system default.
+     * Toggling back restores the system theme rather than stranding the user on AMOLED.
+     */
+    private fun togglePureBlackTheme() {
+        viewModelScope.launch {
+            preferencesRepository.updateApplicationPreferences {
+                it.copy(
+                    appTheme = if (it.appTheme == AppTheme.AMOLED) AppTheme.SYSTEM else AppTheme.AMOLED,
+                )
+            }
         }
     }
 
@@ -89,18 +105,18 @@ class AppearancePreferencesViewModel @Inject constructor(
         }
     }
 
-    private fun toggleUseHighContrastDarkTheme() {
+    private fun toggleGlassUi() {
         viewModelScope.launch {
             preferencesRepository.updateApplicationPreferences {
-                it.copy(useHighContrastDarkTheme = !it.useHighContrastDarkTheme)
+                it.copy(useGlassUi = !it.useGlassUi)
             }
         }
     }
 
-    private fun toggleGlassUi() {
+    private fun toggleUseHighContrastDarkTheme() {
         viewModelScope.launch {
             preferencesRepository.updateApplicationPreferences {
-                it.copy(glassUiEnabled = !it.glassUiEnabled)
+                it.copy(useHighContrastDarkTheme = !it.useHighContrastDarkTheme)
             }
         }
     }
@@ -152,6 +168,7 @@ sealed interface AppearancePreferencesEvent {
     data object ToggleUseDynamicColors : AppearancePreferencesEvent
     data object ToggleUseHighContrastDarkTheme : AppearancePreferencesEvent
     data object ToggleGlassUi : AppearancePreferencesEvent
+    data object TogglePureBlackTheme : AppearancePreferencesEvent
     data object ToggleShowBottomNavigation : AppearancePreferencesEvent
     data object ToggleShowPlaylistsTab : AppearancePreferencesEvent
     data object ToggleShowNetworkTab : AppearancePreferencesEvent

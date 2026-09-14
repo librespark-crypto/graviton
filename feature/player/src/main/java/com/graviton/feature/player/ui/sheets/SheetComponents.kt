@@ -29,8 +29,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.graviton.core.ui.glass.glassAwareColor
-import com.graviton.core.ui.glass.rememberGlassSpec
 
 /** Section label shared by every player sheet, using the M3 label style on the primary role. */
 @Composable
@@ -58,17 +56,13 @@ fun SheetActionRow(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    val rowBackground = glassAwareColor(
-        glass = rememberGlassSpec().controlContainer,
-        normal = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.35f),
-    )
     ListItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
             // Expressive: a fully rounded container so rows read as separate targets over video.
             .clip(RoundedCornerShape(20.dp))
-            .background(rowBackground)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.35f))
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = {
@@ -129,16 +123,12 @@ fun SheetSwitchRow(
     supportingText: String? = null,
     enabled: Boolean = true,
 ) {
-    val rowBackground = glassAwareColor(
-        glass = rememberGlassSpec().controlContainer,
-        normal = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.35f),
-    )
     ListItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(rowBackground)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.35f))
             .toggleable(
                 value = checked,
                 enabled = enabled,

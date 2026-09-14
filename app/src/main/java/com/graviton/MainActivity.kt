@@ -1,6 +1,6 @@
 package com.graviton
 
-import android.graphics.Color
+import androidx.compose.ui.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -38,6 +39,7 @@ import com.graviton.core.common.service.system.SystemService
 import com.graviton.core.media.network.proxy.NetworkStreamingProxy
 import com.graviton.core.media.services.MediaOperationsService
 import com.graviton.core.model.ThemeConfig
+import com.graviton.core.ui.theme.GlassBackground
 import com.graviton.core.ui.theme.GravitonAppTheme
 import com.graviton.feature.player.PlayerActivity
 import com.graviton.navigation.NextNavigationBar
@@ -108,13 +110,13 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(shouldUseDarkTheme) {
                 enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.auto(
-                        lightScrim = Color.TRANSPARENT,
-                        darkScrim = Color.TRANSPARENT,
+                        lightScrim = Color.Transparent.toArgb(),
+                        darkScrim = Color.Transparent.toArgb(),
                         detectDarkMode = { shouldUseDarkTheme },
                     ),
                     navigationBarStyle = SystemBarStyle.auto(
-                        lightScrim = Color.TRANSPARENT,
-                        darkScrim = Color.TRANSPARENT,
+                        lightScrim = Color.Transparent.toArgb(),
+                        darkScrim = Color.Transparent.toArgb(),
                         detectDarkMode = { shouldUseDarkTheme },
                     ),
                 )
@@ -122,13 +124,19 @@ class MainActivity : ComponentActivity() {
 
             // One source of truth for theme colours: the same composable the players use.
             GravitonAppTheme(preferences = (uiState as? MainActivityUiState.Success)?.preferences) {
+                val preferences = (uiState as? MainActivityUiState.Success)?.preferences
+                val glassUi = preferences?.useGlassUi == true
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    color = if (glassUi) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer,
                 ) {
+                    // The static frosted backdrop sits behind every screen while Glass UI is on;
+                    // screens and bars above it draw translucently over it.
+                    if (glassUi) {
+                        GlassBackground()
+                    }
                     val navState = rememberTopLevelNavState()
 
-                    val preferences = (uiState as? MainActivityUiState.Success)?.preferences
                     val sceneDecorator = rememberResponsiveNavigationSceneDecoratorStrategy<NavKey>(
                         isTopLevel = { contentKey -> navState.topLevelContentKeys.contains(contentKey) },
                         showNavigation = { preferences?.showBottomNavigation != false },

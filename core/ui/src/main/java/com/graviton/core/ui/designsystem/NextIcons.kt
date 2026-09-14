@@ -126,6 +126,7 @@ object NextIcons {
     val Audio = Icons.Rounded.Audiotrack
     val Background = Icons.Rounded.FlipToBack
     val Bold = Icons.Rounded.FormatBold
+    val Blur = Icons.Rounded.BlurOn
     val Brightness = Icons.Rounded.BrightnessHigh
     val Calendar = Icons.Rounded.CalendarMonth
     val Caption = Icons.Rounded.ClosedCaption
@@ -233,5 +234,4 @@ object NextIcons {
     val Sort = Icons.Rounded.Sort
     val Trending = Icons.Rounded.TrendingUp
     val Tutorial = Icons.Rounded.School
-    val Glass = Icons.Rounded.BlurOn
 }

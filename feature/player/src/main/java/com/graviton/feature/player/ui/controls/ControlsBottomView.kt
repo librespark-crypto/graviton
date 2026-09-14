@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -59,8 +61,9 @@ import com.graviton.core.common.extensions.isTelevision
 import com.graviton.core.model.VideoContentScale
 import com.graviton.core.ui.R
 import com.graviton.core.ui.extensions.copy
-import com.graviton.core.ui.glass.GlassSurface
-import com.graviton.core.ui.glass.isGlassUiEnabled
+import com.graviton.core.ui.theme.LocalGlassUi
+import com.graviton.core.ui.theme.glassBorderColor
+import com.graviton.core.ui.theme.glassContainerColor
 import com.graviton.feature.player.buttons.LoopButton
 import com.graviton.feature.player.buttons.PlayerButton
 import com.graviton.feature.player.buttons.ShuffleButton
@@ -93,159 +96,126 @@ fun ControlsBottomView(
     val systemBarsPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout).asPaddingValues()
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
-    // Glass UI: time row, seekbar and buttons float as one frosted panel so the seekbar reads as
-    // part of the glass layer. The wrapper draws nothing when glass is off: same tree, same
-    // paddings, identical stock layout.
-    val glassEnabled = isGlassUiEnabled()
-    GlassSurface(
+    val glass = LocalGlassUi.current
+    val glassContainer = glassContainerColor()
+    val glassBorder = glassBorderColor()
+    Column(
         modifier = modifier
             .padding(systemBarsPadding.copy(top = 0.dp))
-            .padding(horizontal = if (glassEnabled) 12.dp else 0.dp)
-            .padding(bottom = if (glassEnabled) 12.dp else 0.dp),
-        enabled = glassEnabled,
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .padding(top = 16.dp)
-                .padding(bottom = 16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 0.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            ControlsTimeRow(
-                mediaPresentationState = mediaPresentationState,
-                isTv = isTv,
-                onRotateClick = onRotateClick,
-            )
-            PlayerSeekbar(
-                modifier = seekBarModifier,
-                position = mediaPresentationState.position.toFloat(),
-                duration = mediaPresentationState.duration.toFloat(),
-                onSeek = { onSeek(it.toLong()) },
-                onSeekFinished = { onSeekEnd() },
-            )
-            ControlsButtonsRow(
-                player = player,
-                controlsAlignment = controlsAlignment,
-                videoContentScale = videoContentScale,
-                isPipSupported = isPipSupported,
-                onLockControlsClick = onLockControlsClick,
-                onVideoContentScaleClick = onVideoContentScaleClick,
-                onVideoContentScaleLongClick = onVideoContentScaleLongClick,
-                onPictureInPictureClick = onPictureInPictureClick,
-                onPlayInBackgroundClick = onPlayInBackgroundClick,
-            )
-        }
-    }
-}
-
-@Composable
-private fun ControlsTimeRow(
-    mediaPresentationState: MediaPresentationState,
-    isTv: Boolean,
-    onRotateClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        var showPendingPosition by rememberSaveable { mutableStateOf(false) }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = if (isTv) {
-                Modifier
-            } else {
-                Modifier.noRippleClickable {
-                    showPendingPosition = !showPendingPosition
-                }
-            },
-        ) {
-            Text(
-                text = when (showPendingPosition) {
-                    true -> "-${mediaPresentationState.pendingPositionFormatted}"
-                    false -> mediaPresentationState.positionFormatted
+            .padding(horizontal = 8.dp)
+            .padding(top = 16.dp)
+            .padding(bottom = 16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 0.dp)
+            .then(
+                if (glass) {
+                    // Floating frosted strip; translucent only, so the video surface underneath
+                    // is untouched and playback never pays for a blur.
+                    Modifier
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(glassContainer)
+                        .border(1.dp, glassBorder, RoundedCornerShape(24.dp))
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                } else {
+                    Modifier
                 },
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White,
-            )
-            Text(
-                text = " / ",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White,
-            )
-            Text(
-                text = mediaPresentationState.durationFormatted,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White,
-            )
-        }
+            ),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            var showPendingPosition by rememberSaveable { mutableStateOf(false) }
 
-        Spacer(modifier = Modifier.weight(1f))
-        if (!isTv) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = if (isTv) {
+                    Modifier
+                } else {
+                    Modifier.noRippleClickable {
+                        showPendingPosition = !showPendingPosition
+                    }
+                },
+            ) {
+                Text(
+                    text = when (showPendingPosition) {
+                        true -> "-${mediaPresentationState.pendingPositionFormatted}"
+                        false -> mediaPresentationState.positionFormatted
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                )
+                Text(
+                    text = " / ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                )
+                Text(
+                    text = mediaPresentationState.durationFormatted,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+            if (!isTv) {
+                PlayerButton(
+                    modifier = Modifier.size(30.dp),
+                    onClick = onRotateClick,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_screen_rotation),
+                        contentDescription = stringResource(R.string.screen_rotation),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+        PlayerSeekbar(
+            modifier = seekBarModifier,
+            position = mediaPresentationState.position.toFloat(),
+            duration = mediaPresentationState.duration.toFloat(),
+            onSeek = { onSeek(it.toLong()) },
+            onSeekFinished = { onSeekEnd() },
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = controlsAlignment),
+        ) {
+            PlayerButton(onClick = onLockControlsClick) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_lock_open),
+                    contentDescription = stringResource(R.string.controls_lock),
+                )
+            }
             PlayerButton(
-                modifier = Modifier.size(30.dp),
-                onClick = onRotateClick,
+                onClick = onVideoContentScaleClick,
+                onLongClick = onVideoContentScaleLongClick,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_screen_rotation),
-                    contentDescription = stringResource(R.string.screen_rotation),
-                    modifier = Modifier.size(20.dp),
+                    painter = painterResource(videoContentScale.drawableRes()),
+                    contentDescription = stringResource(R.string.video_zoom),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ControlsButtonsRow(
-    player: Player,
-    controlsAlignment: Alignment.Horizontal,
-    videoContentScale: VideoContentScale,
-    isPipSupported: Boolean,
-    onLockControlsClick: () -> Unit,
-    onVideoContentScaleClick: () -> Unit,
-    onVideoContentScaleLongClick: () -> Unit,
-    onPictureInPictureClick: () -> Unit,
-    onPlayInBackgroundClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = controlsAlignment),
-    ) {
-        PlayerButton(onClick = onLockControlsClick) {
-            Icon(
-                painter = painterResource(R.drawable.ic_lock_open),
-                contentDescription = stringResource(R.string.controls_lock),
-            )
-        }
-        PlayerButton(
-            onClick = onVideoContentScaleClick,
-            onLongClick = onVideoContentScaleLongClick,
-        ) {
-            Icon(
-                painter = painterResource(videoContentScale.drawableRes()),
-                contentDescription = stringResource(R.string.video_zoom),
-            )
-        }
-        if (isPipSupported) {
-            PlayerButton(onClick = onPictureInPictureClick) {
+            if (isPipSupported) {
+                PlayerButton(onClick = onPictureInPictureClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_pip),
+                        contentDescription = stringResource(R.string.pip_settings),
+                    )
+                }
+            }
+            PlayerButton(onClick = onPlayInBackgroundClick) {
                 Icon(
-                    painter = painterResource(R.drawable.ic_pip),
-                    contentDescription = stringResource(R.string.pip_settings),
+                    painter = painterResource(R.drawable.ic_headset),
+                    contentDescription = stringResource(R.string.background_play),
                 )
             }
+            LoopButton(player = player)
+            ShuffleButton(player = player)
         }
-        PlayerButton(onClick = onPlayInBackgroundClick) {
-            Icon(
-                painter = painterResource(R.drawable.ic_headset),
-                contentDescription = stringResource(R.string.background_play),
-            )
-        }
-        LoopButton(player = player)
-        ShuffleButton(player = player)
     }
 }
 

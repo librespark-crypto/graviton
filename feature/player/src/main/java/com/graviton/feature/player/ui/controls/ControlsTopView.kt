@@ -1,15 +1,17 @@
 package com.graviton.feature.player.ui.controls
 
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
@@ -18,18 +20,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import com.graviton.core.model.DecoderMode
 import com.graviton.core.ui.R
 import com.graviton.core.ui.extensions.copy
-import com.graviton.core.ui.glass.GlassSurface
-import com.graviton.core.ui.glass.isGlassUiEnabled
+import com.graviton.core.ui.theme.LocalGlassUi
+import com.graviton.core.ui.theme.glassBorderColor
+import com.graviton.core.ui.theme.glassContainerColor
 import com.graviton.feature.player.buttons.PlayerButton
 import com.graviton.feature.player.extensions.nameRes
 
@@ -55,49 +58,28 @@ fun ControlsTopView(
     val systemBarsPadding = WindowInsets.systemBars.union(WindowInsets.displayCutout).asPaddingValues()
     // Add top spacing only when the system bars don't already provide it (e.g. on TV / landscape).
     val extraTopPadding = if (systemBarsPadding.calculateTopPadding() == 0.dp) 16.dp else 0.dp
-    // Glass UI: the bar floats as a frosted pill. The wrapper is always in the tree and draws
-    // nothing when glass is off, so the stock layout below stays pixel-identical.
-    val glassEnabled = isGlassUiEnabled()
-    GlassSurface(
-        modifier = modifier
-            .padding(systemBarsPadding.copy(bottom = 0.dp))
-            .padding(horizontal = if (glassEnabled) 12.dp else 0.dp)
-            .padding(top = if (glassEnabled) 8.dp else 0.dp),
-        enabled = glassEnabled,
-    ) {
-        ControlsTopBarContent(
-            title = title,
-            currentDecoderMode = currentDecoderMode,
-            extraTopPadding = extraTopPadding,
-            onAudioClick = onAudioClick,
-            onSubtitleClick = onSubtitleClick,
-            onPlaybackSpeedClick = onPlaybackSpeedClick,
-            onDecoderClick = onDecoderClick,
-            onMoreClick = onMoreClick,
-            onBackClick = onBackClick,
-        )
-    }
-}
-
-@Composable
-private fun ControlsTopBarContent(
-    modifier: Modifier = Modifier,
-    title: String,
-    currentDecoderMode: DecoderMode,
-    extraTopPadding: Dp,
-    onAudioClick: () -> Unit,
-    onSubtitleClick: () -> Unit,
-    onPlaybackSpeedClick: () -> Unit,
-    onDecoderClick: () -> Unit,
-    onMoreClick: () -> Unit,
-    onBackClick: () -> Unit,
-) {
+    val glass = LocalGlassUi.current
+    val glassContainer = glassContainerColor()
+    val glassBorder = glassBorderColor()
     Row(
         modifier = modifier
-            .fillMaxWidth()
+            .padding(systemBarsPadding.copy(bottom = 0.dp))
             .padding(horizontal = 8.dp)
             .padding(bottom = 16.dp)
-            .padding(top = extraTopPadding),
+            .padding(top = extraTopPadding)
+            .then(
+                if (glass) {
+                    // Floating frosted strip instead of edge-to-edge controls; the video itself
+                    // is never modified, only this translucent bar draws above it.
+                    Modifier
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(glassContainer)
+                        .border(1.dp, glassBorder, RoundedCornerShape(24.dp))
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                } else {
+                    Modifier
+                },
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

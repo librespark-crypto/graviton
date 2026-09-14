@@ -33,6 +33,7 @@ import com.graviton.core.ui.components.ListSectionTitle
 import com.graviton.core.ui.components.NextDialog
 import com.graviton.core.ui.components.NextTopAppBar
 import com.graviton.core.ui.designsystem.NextIcons
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun GeneralPreferencesScreen(
@@ -70,7 +71,7 @@ private fun GeneralPreferencesContent(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { innerPadding ->
         Column(
             modifier = Modifier

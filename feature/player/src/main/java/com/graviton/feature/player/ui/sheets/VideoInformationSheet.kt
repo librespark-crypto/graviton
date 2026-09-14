@@ -270,17 +270,15 @@ fun BoxScope.VideoInformationSheet(
 
 private fun getProfileNameFromFormat(format: Format): String? {
     val spec = format.toVideoStreamSpec()
-    val profile = spec?.profile
-    return if (spec != null && profile != null) {
-        getProfileName(spec.codec, profile)
+    return if (spec != null && spec?.profile != null) {
+        getProfileName(spec.codec, spec.profile!!)
     } else null
 }
 
 private fun getLevelNameFromFormat(format: Format): String? {
     val spec = format.toVideoStreamSpec()
-    val level = spec?.level
-    return if (spec != null && level != null) {
-        getLevelName(spec.codec, level)
+    return if (spec != null && spec?.level != null) {
+        getLevelName(spec.codec, spec.level!!)
     } else null
 }
 

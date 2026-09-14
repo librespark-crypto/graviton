@@ -44,8 +44,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.graviton.core.ui.glass.glassAwareColor
-import com.graviton.core.ui.glass.rememberGlassSpec
 import com.graviton.core.ui.theme.GravitonTheme
 import com.graviton.feature.player.state.HoldSpeedGesture
 
@@ -81,22 +79,16 @@ fun BoxScope.SpeedOverlayView(
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(top = topMargin),
     ) {
-        val spec = rememberGlassSpec()
-        val containerColor = glassAwareColor(
-            glass = spec.capsuleContainer,
-            normal = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
-        )
-        val borderColor = glassAwareColor(
-            glass = spec.border,
-            normal = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-        )
         Surface(
             shape = RoundedCornerShape(100.dp),
-            color = containerColor,
+            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.55f),
             contentColor = MaterialTheme.colorScheme.onSurface,
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
-            border = BorderStroke(1.dp, borderColor),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+            ),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
