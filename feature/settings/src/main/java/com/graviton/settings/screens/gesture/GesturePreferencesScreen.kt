@@ -49,6 +49,7 @@ import com.graviton.core.ui.preview.DayNightPreview
 import com.graviton.core.ui.theme.GravitonTheme
 import com.graviton.settings.composables.OptionsDialog
 import com.graviton.settings.extensions.name
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun GesturePreferencesScreen(
@@ -86,7 +87,7 @@ private fun GesturePreferencesContent(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { innerPadding ->
         Column(
             modifier = Modifier

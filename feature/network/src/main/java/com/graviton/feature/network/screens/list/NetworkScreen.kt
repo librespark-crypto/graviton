@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,8 +59,8 @@ import com.graviton.core.ui.components.rememberTvListFocusRequester
 import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.core.ui.components.tvListFocus
 import com.graviton.core.ui.designsystem.NextIcons
-import com.graviton.core.ui.glass.GlassExtendedFloatingActionButton
 import com.graviton.core.ui.theme.GravitonTheme
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun NetworkScreenRoute(
@@ -119,7 +120,7 @@ internal fun NetworkScreen(
             )
         },
         floatingActionButton = {
-            GlassExtendedFloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = onAddConnection,
                 icon = { Icon(NextIcons.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.add_connection)) },
@@ -128,7 +129,7 @@ internal fun NetworkScreen(
                     .tvFocusRing(shape = RoundedCornerShape(16.dp)),
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         val containerModifier = Modifier
             .fillMaxSize()

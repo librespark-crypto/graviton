@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,7 +58,7 @@ import com.graviton.core.ui.components.rememberTvListFocusRequester
 import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.core.ui.components.tvListFocus
 import com.graviton.core.ui.designsystem.NextIcons
-import com.graviton.core.ui.glass.GlassExtendedFloatingActionButton
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 @Composable
 fun PlaylistListScreenRoute(
@@ -101,7 +102,7 @@ internal fun PlaylistListScreen(
             )
         },
         floatingActionButton = {
-            GlassExtendedFloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = { onAction(PlaylistUiAction.ShowCreateDialog) },
                 icon = {
                     Icon(
@@ -115,7 +116,7 @@ internal fun PlaylistListScreen(
                     .tvFocusRing(shape = RoundedCornerShape(16.dp)),
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         val containerModifier = Modifier
             .fillMaxSize()

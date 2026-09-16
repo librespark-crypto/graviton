@@ -1,10 +1,9 @@
 package com.graviton.navigation
 
 import androidx.annotation.StringRes
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.Text
@@ -51,10 +49,9 @@ import androidx.navigation3.scene.Scene
 import com.graviton.core.ui.R
 import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.core.ui.designsystem.NextIcons
-import com.graviton.core.ui.glass.GlassTokens
-import com.graviton.core.ui.glass.glassAwareColor
-import com.graviton.core.ui.glass.isGlassUiEnabled
-import com.graviton.core.ui.glass.rememberGlassSpec
+import com.graviton.core.ui.theme.LocalGlassUi
+import com.graviton.core.ui.theme.glassBorderColor
+import com.graviton.core.ui.theme.glassContainerColor
 import com.graviton.feature.network.navigation.NetworkRoute
 import com.graviton.feature.playlist.navigation.PlaylistListRoute
 import com.graviton.feature.videopicker.navigation.MediaPickerRoute
@@ -170,45 +167,41 @@ fun TopLevelNavState.isNavigationBetweenTopLevelDestinations(initialState: Scene
 @Composable
 fun NextNavigationBar(state: TopLevelNavState, preferences: com.graviton.core.model.ApplicationPreferences?) {
     if (preferences?.showBottomNavigation == false) return
-    val glassEnabled = isGlassUiEnabled()
-    val spec = rememberGlassSpec()
-    // Floating pill in glass mode, edge-to-edge bar otherwise. Padding and color both animate so
-    // the toggle crossfades instead of popping.
-    val outerPadding by animateDpAsState(
-        targetValue = if (glassEnabled) 12.dp else 0.dp,
-        animationSpec = tween(durationMillis = GlassTokens.CrossfadeDurationMillis),
-        label = "glassNavPadding",
-    )
-    val containerColor = glassAwareColor(
-        glass = spec.navigationContainer,
-        normal = MaterialTheme.colorScheme.surfaceContainer,
-    )
-    val borderColor = glassAwareColor(glass = spec.border, normal = Color.Transparent)
-    val barShape = RoundedCornerShape(GlassTokens.PanelCornerRadius)
-    Box(modifier = Modifier.padding(horizontal = outerPadding).padding(bottom = outerPadding)) {
-        NavigationBar(
-            containerColor = containerColor,
-            tonalElevation = if (glassEnabled) 0.dp else NavigationBarDefaults.Elevation,
-            modifier = Modifier
-                .clip(barShape)
-                .border(GlassTokens.BorderWidth, borderColor, barShape),
-        ) {
-            state.destinations.forEach { dest ->
-                val show = when (dest) {
-                    TopLevelDestination.PLAYLISTS -> preferences?.showPlaylistsTab ?: true
-                    TopLevelDestination.NETWORK -> false
-                    TopLevelDestination.MUSIC -> preferences?.showMusicTab ?: true
-                    else -> true
-                }
-                if (show) {
-                    NavigationBarItem(
-                        selected = state.topLevelRoute == dest.route,
-                        onClick = { state.switchTo(dest.route) },
-                        icon = { Icon(imageVector = dest.icon, contentDescription = null) },
-                        label = { Text(text = stringResource(dest.labelRes)) },
-                        modifier = Modifier.tvFocusRing(shape = RoundedCornerShape(24.dp)),
-                    )
-                }
+    val glass = LocalGlassUi.current
+    val glassContainer = glassContainerColor()
+    val glassBorder = glassBorderColor()
+    NavigationBar(
+        containerColor = if (glass) glassContainer else MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = if (glass) 0.dp else 2.dp,
+        modifier = if (glass) {
+            Modifier.drawBehind {
+                // Hairline top edge separating the translucent bar from content scrolling under it.
+                drawLine(
+                    color = glassBorder,
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, 0f),
+                    strokeWidth = 1f,
+                )
+            }
+        } else {
+            Modifier
+        },
+    ) {
+        state.destinations.forEach { dest ->
+            val show = when (dest) {
+                TopLevelDestination.PLAYLISTS -> preferences?.showPlaylistsTab ?: true
+                TopLevelDestination.NETWORK -> false
+                TopLevelDestination.MUSIC -> preferences?.showMusicTab ?: true
+                else -> true
+            }
+            if (show) {
+                NavigationBarItem(
+                    selected = state.topLevelRoute == dest.route,
+                    onClick = { state.switchTo(dest.route) },
+                    icon = { Icon(imageVector = dest.icon, contentDescription = null) },
+                    label = { Text(text = stringResource(dest.labelRes)) },
+                    modifier = Modifier.tvFocusRing(shape = RoundedCornerShape(24.dp)),
+                )
             }
         }
     }
@@ -216,13 +209,10 @@ fun NextNavigationBar(state: TopLevelNavState, preferences: com.graviton.core.mo
 
 @Composable
 fun NextNavigationRail(state: TopLevelNavState, preferences: com.graviton.core.model.ApplicationPreferences?) {
-    val glassContainer = glassAwareColor(
-        glass = rememberGlassSpec().navigationContainer,
-        normal = MaterialTheme.colorScheme.surfaceContainer,
-    )
+    val glass = LocalGlassUi.current
     NavigationRail(
         modifier = Modifier.fillMaxHeight(),
-        containerColor = glassContainer,
+        containerColor = if (glass) glassContainerColor() else MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
             modifier = Modifier.fillMaxHeight(),

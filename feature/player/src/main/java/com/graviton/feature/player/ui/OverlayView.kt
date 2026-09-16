@@ -60,11 +60,10 @@ import com.graviton.core.common.extensions.isTelevision
 import com.graviton.core.ui.R
 import com.graviton.core.ui.components.requestFocusUntilLanded
 import com.graviton.core.ui.designsystem.NextIcons
-import com.graviton.core.ui.glass.GlassTokens
-import com.graviton.core.ui.glass.glassAwareColor
-import com.graviton.core.ui.glass.isGlassUiEnabled
-import com.graviton.core.ui.glass.rememberGlassSpec
 import com.graviton.core.ui.theme.GravitonTheme
+import com.graviton.core.ui.theme.LocalGlassUi
+import com.graviton.core.ui.theme.glassBorderColor
+import com.graviton.core.ui.theme.glassContainerColor
 
 /**
  * The adaptive sheet every player overlay is presented in.
@@ -139,15 +138,9 @@ fun BoxScope.OverlayView(
             exit = (if (isPortrait) slideOutVertically { it } else slideOutHorizontally { it }) +
                 fadeOut(animationSpec = tween(durationMillis = 110)),
         ) {
-            // Glass UI: the sheet becomes a frosted panel with a hairline edge highlight and a
-            // soft shadow. Geometry and translucency otherwise stay as designed, so the video
-            // remains partly visible and rows keep their contrast.
-            val spec = rememberGlassSpec()
-            val sheetColor = glassAwareColor(
-                glass = spec.sheetContainer,
-                normal = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
-            )
-            val sheetBorder = glassAwareColor(glass = spec.border, normal = Color.Transparent)
+            val glass = LocalGlassUi.current
+            val glassContainer = glassContainerColor()
+            val glassBorder = glassBorderColor()
             Surface(
                 shape = if (isPortrait) {
                     RoundedCornerShape(topStart = 36.dp, topEnd = 36.dp)
@@ -156,11 +149,11 @@ fun BoxScope.OverlayView(
                 },
                 // Translucent by design: the video stays readable behind the sheet, and the
                 // colour is a theme token so the app accent tints the sheet automatically.
-                color = sheetColor,
+                // Glass UI mode goes a step further: a frosted container with a hairline border.
+                color = if (glass) glassContainer else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.82f),
                 contentColor = MaterialTheme.colorScheme.onSurface,
+                border = if (glass) BorderStroke(1.dp, glassBorder) else null,
                 tonalElevation = 0.dp,
-                shadowElevation = if (isGlassUiEnabled()) 16.dp else 0.dp,
-                border = BorderStroke(GlassTokens.BorderWidth, sheetBorder),
                 modifier = modifier
                     .semantics { isTraversalGroup = true }
                     .then(

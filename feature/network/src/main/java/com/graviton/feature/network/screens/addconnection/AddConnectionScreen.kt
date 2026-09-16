@@ -57,6 +57,7 @@ import com.graviton.core.ui.components.NextTopAppBar
 import com.graviton.core.ui.components.tvFocusRing
 import com.graviton.core.ui.designsystem.NextIcons
 import com.graviton.feature.network.ObserveAsEvents
+import com.graviton.core.ui.theme.gravitonScreenContainerColor
 
 /**
  * Default path per protocol: SMB expects a bare share name (no leading slash), while FTP and WebDAV
@@ -232,7 +233,7 @@ internal fun AddConnectionScreen(
                 },
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = gravitonScreenContainerColor(),
     ) { padding ->
         Column(
             modifier = Modifier

@@ -6,7 +6,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.graviton.core.model.AppTheme
 import com.graviton.core.model.ApplicationPreferences
 import com.graviton.core.model.ThemeConfig
-import com.graviton.core.ui.glass.LocalGlassEnabled
 
 /**
  * The single entry point every Graviton screen themes itself with.
@@ -16,6 +15,9 @@ import com.graviton.core.ui.glass.LocalGlassEnabled
  * untouched. Routing every surface through this one function means the accent, dark mode and
  * contrast preference always come from the same place, and because [preferences] arrives as
  * observed state the change is applied on the next recomposition — no restart.
+ *
+ * It also provides [LocalGlassUi], so any surface below this point can adopt the frosted-glass
+ * treatment without reading the preference itself.
  *
  * @param forceDarkTheme for immersive surfaces such as the video player, which are always dark
  *   regardless of the app's light/dark setting. The *accent* still follows the preference; only
@@ -32,14 +34,15 @@ fun GravitonAppTheme(
         ThemeConfig.OFF -> false
         ThemeConfig.ON -> true
     }
-    CompositionLocalProvider(LocalGlassEnabled provides preferences.glassUiEnabled) {
-        GravitonTheme(
-            darkTheme = darkTheme,
-            highContrastDarkTheme = preferences.useHighContrastDarkTheme,
-            dynamicColor = preferences.useDynamicColors,
-            appTheme = preferences.appTheme,
-            content = content,
-        )
+    GravitonTheme(
+        darkTheme = darkTheme,
+        highContrastDarkTheme = preferences.useHighContrastDarkTheme,
+        dynamicColor = preferences.useDynamicColors,
+        appTheme = preferences.appTheme,
+    ) {
+        CompositionLocalProvider(LocalGlassUi provides preferences.useGlassUi) {
+            content()
+        }
     }
 }
 
@@ -54,8 +57,10 @@ fun GravitonAppTheme(
     if (preferences != null) {
         GravitonAppTheme(preferences = preferences, forceDarkTheme = forceDarkTheme, content = content)
     } else {
-        CompositionLocalProvider(LocalGlassEnabled provides false) {
-            GravitonTheme(darkTheme = forceDarkTheme || isSystemInDarkTheme(), appTheme = fallbackAppTheme, content = content)
+        GravitonTheme(darkTheme = forceDarkTheme || isSystemInDarkTheme(), appTheme = fallbackAppTheme) {
+            CompositionLocalProvider(LocalGlassUi provides false) {
+                content()
+            }
         }
     }
 }

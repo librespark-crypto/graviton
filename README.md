@@ -1,14 +1,14 @@
-# Orbiton
+# Graviton
 
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/anilbeesetti/graviton.svg?logo=github&label=GitHub&cacheSeconds=3600)](https://github.com/graviton/graviton/releases/latest)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/librespark-crypto/graviton.svg?logo=github&label=GitHub&cacheSeconds=3600)](https://github.com/librespark-crypto/graviton/releases/latest)
 
-Orbiton is a native Android video player written in Kotlin. Built with Jetpack Compose and Media3/ExoPlayer, it offers a robust, modern, and highly customizable media playback experience.
+Graviton is a native Android video player written in Kotlin. Built with Jetpack Compose and Media3/ExoPlayer, it offers a robust, modern, and highly customizable media playback experience.
 
 **This project is currently in development. Please report any bugs or feature requests in the Issues section.**
 
 ## Overview
 
-Orbiton is designed to deliver a premium, distraction-free video playback experience for Android users. Whether you're watching local files, network streams, or customized playlists, Orbiton provides the tools you need for optimal viewing. It leverages hardware decoding for efficiency and offers deep integration with modern Android features.
+Graviton is designed to deliver a premium, distraction-free video playback experience for Android users. Whether you're watching local files, network streams, or customized playlists, Graviton provides the tools you need for optimal viewing. It leverages hardware decoding for efficiency and offers deep integration with modern Android features.
 
 ## Key Features
 
@@ -16,13 +16,13 @@ Orbiton is designed to deliver a premium, distraction-free video playback experi
 - 🚀 **Hardware Acceleration:** Efficient playback using HW and HW+ decoding modes, falling back to SW when necessary.
 - 🎛️ **Advanced Controls:** Playback speed adjustment, skip silence, A-B repeat, and fine-grained subtitle synchronization.
 - 👆 **Intuitive Gestures:** Swipe to control brightness and volume, and double-tap to seek.
-- 🎨 **Modern UI:** A clean, minimal interface built entirely with Material 3 and Jetpack Compose.
+- 🎨 **Modern UI:** A clean, minimal interface built entirely with Material 3 and Jetpack Compose, with an optional frosted Glass UI style.
 - 📺 **Picture-in-Picture (PiP):** Seamless background and floating window playback on supported devices.
 - 🌐 **Network Playback:** Support for various streaming protocols and network shares.
 
 ## Architecture
 
-Orbiton is built using modern Android development practices:
+Graviton is built using modern Android development practices:
 - **Language:** 100% Kotlin
 - **UI Toolkit:** Jetpack Compose (Material 3)
 - **Media Engine:** AndroidX Media3 (ExoPlayer)
@@ -40,8 +40,8 @@ Orbiton is built using modern Android development practices:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/orbiton.git
-   cd orbiton
+   git clone https://github.com/librespark-crypto/graviton.git
+   cd graviton
    ```
 
 2. **Build a Debug APK:**
