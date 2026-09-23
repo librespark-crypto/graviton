@@ -214,7 +214,7 @@ fun FieldChip(
         leadingIcon = {
             Icon(
                 imageVector = if (selected) selectedIcon else unselectedIcon,
-                contentDescription = "",
+                contentDescription = null,
                 modifier = Modifier.size(FilterChipDefaults.IconSize),
                 tint = MaterialTheme.colorScheme.secondary,
             )
