@@ -114,7 +114,7 @@ private fun FolderListItem(
             Box(modifier = Modifier.padding(horizontal = 8.dp)) {
                 Icon(
                     imageVector = ImageVector.vectorResource(id = R.drawable.folder_thumb),
-                    contentDescription = "",
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier = Modifier
                         .width(min(90.dp, LocalConfiguration.current.screenWidthDp.dp * 0.3f))
@@ -224,7 +224,7 @@ private fun FolderGridItem(
                 Box {
                     Icon(
                         imageVector = ImageVector.vectorResource(id = R.drawable.folder_thumb),
-                        contentDescription = "",
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.surfaceContainerHigh,
                         modifier = Modifier
                             .width(min(90.dp, LocalConfiguration.current.screenWidthDp.dp * 0.3f))
