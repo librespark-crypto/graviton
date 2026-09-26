@@ -13,3 +13,7 @@
 ## 2024-05-23 - Accessibility Anti-Pattern: Redundant Content Descriptions
 **Learning:** Adding `contentDescription` to icons inside `DropdownMenuItem` or `ExtendedFloatingActionButton` (which already contain `Text` nodes) causes screen readers to read the text twice. In Jetpack Compose, focusable containers merge semantics, so a descriptive icon sitting next to descriptive text should always have `contentDescription = null` to avoid redundant and noisy read-outs.
 **Action:** When adding `contentDescription`, strictly limit it to *icon-only* interactive elements (like `IconButton` without textual children). Do not add descriptions to icons that act as visual reinforcements for adjacent text.
+
+## 2024-05-24 - Accessibility Anti-Pattern: contentDescription = ""
+**Learning:** Setting `contentDescription = ""` for decorative icons in Jetpack Compose is an anti-pattern that can cause screen readers like TalkBack to read out awkward pauses or incorrectly announce the element.
+**Action:** Always set `contentDescription = null` (rather than an empty string `""`) for purely decorative icons to ensure accessibility services properly ignore them.
