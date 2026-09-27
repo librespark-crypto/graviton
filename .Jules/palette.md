@@ -13,3 +13,7 @@
 ## 2024-05-23 - Accessibility Anti-Pattern: Redundant Content Descriptions
 **Learning:** Adding `contentDescription` to icons inside `DropdownMenuItem` or `ExtendedFloatingActionButton` (which already contain `Text` nodes) causes screen readers to read the text twice. In Jetpack Compose, focusable containers merge semantics, so a descriptive icon sitting next to descriptive text should always have `contentDescription = null` to avoid redundant and noisy read-outs.
 **Action:** When adding `contentDescription`, strictly limit it to *icon-only* interactive elements (like `IconButton` without textual children). Do not add descriptions to icons that act as visual reinforcements for adjacent text.
+
+## 2024-05-24 - Accessibility Anti-Pattern: Misleading Content Descriptions for Common Actions
+**Learning:** Found an accessibility issue where a general "Close" button in a player overlay view (`OverlayView.kt`) was using the localized string `close_search` ("Close search") instead of a generic `close` ("Close"). For screen reader users, hearing "Close search" when they are inside a Display Settings or Subtitle Selector overlay is highly confusing and inaccurate.
+**Action:** Always ensure that `contentDescription` correctly matches the context of the action being performed. Avoid reusing highly specific string resources (like `close_search`) for generic actions (like closing a bottom sheet). Double-check the actual text value of `R.string.*` references when applying them to shared UI components.
