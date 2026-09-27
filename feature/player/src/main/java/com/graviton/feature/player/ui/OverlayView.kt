@@ -196,7 +196,7 @@ fun BoxScope.OverlayView(
                             IconButton(onClick = onDismiss) {
                                 Icon(
                                     imageVector = NextIcons.Close,
-                                    contentDescription = stringResource(R.string.close_search),
+                                    contentDescription = stringResource(R.string.close),
                                 )
                             }
                         }
