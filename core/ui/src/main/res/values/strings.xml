@@ -572,6 +572,7 @@
     <string name="buffered_position">Buffered</string>
     <string name="playback_speed">Playback speed</string>
     <string name="playback_state">State</string>
+    <string name="loading">Loading</string>
     <string name="state_buffering">Buffering</string>
     <string name="state_playing">Playing</string>
     <string name="state_paused">Paused</string>
