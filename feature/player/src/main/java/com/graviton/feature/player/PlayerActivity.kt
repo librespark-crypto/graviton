@@ -100,6 +100,7 @@ class PlayerActivity : ComponentActivity() {
     private val playbackStateListener: Player.Listener = playbackStateListener()
 
     private val subtitleFileSuspendLauncher = registerForSuspendActivityResult(OpenDocumentAtInitialUri())
+    private var isResolving = kotlinx.coroutines.flow.MutableStateFlow(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,6 +119,7 @@ class PlayerActivity : ComponentActivity() {
             val appPreferences by viewModel.applicationPreferences.collectAsStateWithLifecycle()
             val player = renderedController
             var showNetworkStreamDialog by rememberSaveable { mutableStateOf(false) }
+            val resolving by isResolving.collectAsStateWithLifecycle()
 
             CompositionLocalProvider(LocalUseMaterialYouControls provides (uiState.playerPreferences?.useMaterialYouControls == true)) {
                 // The player is always dark, but the accent, contrast and dynamic-colour
@@ -138,6 +140,7 @@ class PlayerActivity : ComponentActivity() {
                         viewModel = viewModel,
                         uiState = uiState,
                         playerPreferences = uiState.playerPreferences ?: return@GravitonAppTheme,
+                        isResolving = resolving,
                         onNetworkStreamClick = { showNetworkStreamDialog = true },
                         onShareClick = ::shareCurrentMedia,
                         onSettingsClick = ::openAppSettings,
@@ -415,15 +418,30 @@ class PlayerActivity : ComponentActivity() {
     private fun playNetworkStream(url: String) {
         val controller = mediaController ?: return
         val uri = url.toUri()
-        controller.setMediaItem(
-            MediaItem.Builder()
-                .setUri(uri)
-                .setMediaId(url)
-                .build(),
-        )
-        controller.playWhenReady = true
-        controller.prepare()
-        intent.data = uri
+        lifecycleScope.launch {
+            isResolving.value = true
+            try {
+                val extracted = resolveStream(url)
+                controller.setMediaItem(
+                    MediaItem.Builder()
+                        .setUri(extracted.playableUrl.toUri())
+                        .setMediaId(extracted.playableUrl)
+                        .build(),
+                )
+                setMediaMetadata(
+                    MediaMetadata.Builder().apply {
+                        setTitle(extracted.title ?: if (::playerApi.isInitialized) playerApi.title else null)
+                        extracted.uploader?.let(::setArtist)
+                        extracted.thumbnailUrl?.let { setArtworkUri(it.toUri()) }
+                    }.build()
+                )
+                controller.playWhenReady = true
+                controller.prepare()
+                intent.data = uri
+            } finally {
+                isResolving.value = false
+            }
+        }
     }
 
     /** Shares the file currently playing through the system chooser. */

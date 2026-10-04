@@ -96,12 +96,14 @@ fun BufferingIndicator(
                     modifier = Modifier.size(56.dp),
                     progress = progress,
                 )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    letterSpacing = MaterialTheme.typography.labelLarge.letterSpacing * 1.4f,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (label.isNotEmpty()) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        letterSpacing = MaterialTheme.typography.labelLarge.letterSpacing * 1.4f,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 progress?.let { real ->
                     Text(
                         text = "${(real * 100).toInt()}%",
